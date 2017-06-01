@@ -5,8 +5,7 @@ var winston = require('winston');
 var nconf = require('nconf');
 var templates = require('templates.js');
 var nodemailer = require('nodemailer');
-var sendmailTransport = require('nodemailer-sendmail-transport');
-var smtpTransport = require('nodemailer-smtp-transport');
+var wellKnownServices = require('nodemailer/lib/well-known/services');
 var htmlToText = require('html-to-text');
 var url = require('url');
 
@@ -16,8 +15,12 @@ var meta = require('./meta');
 var translator = require('./translator');
 
 var transports = {
-	sendmail: nodemailer.createTransport(sendmailTransport()),
-	gmail: undefined,
+	sendmail: nodemailer.createTransport({
+		sendmail: true,
+		newline: 'unix',
+	}),
+	smtp: undefined,
+	// gmail: undefined,
 };
 
 var app;
@@ -25,22 +28,34 @@ var fallbackTransport;
 
 var Emailer = module.exports;
 
+Emailer.listServices = function (callback) {
+	var services = Object.keys(wellKnownServices);
+	setImmediate(callback, null, services);
+};
 
 Emailer.registerApp = function (expressApp) {
 	app = expressApp;
 
-	// Enable Gmail transport if enabled in ACP
-	if (parseInt(meta.config['email:GmailTransport:enabled'], 10) === 1) {
-		transports.gmail = nodemailer.createTransport(smtpTransport({
-			host: 'smtp.gmail.com',
-			port: 465,
-			secure: true,
+	// Enable SMTP transport if enabled in ACP
+	// this covers the Gmail transport with `service = "Gmail"`
+	if (parseInt(meta.config['email:smtpTransport:enabled'], 10) === 1) {
+		var smtpOptions = {
 			auth: {
 				user: meta.config['email:GmailTransport:user'],
 				pass: meta.config['email:GmailTransport:pass'],
 			},
-		}));
-		fallbackTransport = transports.gmail;
+		};
+
+		if (meta.config['email:smtpTransport:service'] === 'nodebb-custom-smtp') {
+			smtpOptions.port = meta.config['email:smtpTransport:port'];
+			smtpOptions.host = meta.config['email:smtpTransport:host'];
+			smtpOptions.secure = true;
+		} else {
+			smtpOptions.service = meta.config['email:smtpTransport:service'];
+		}
+
+		transports.smtp = nodemailer.createTransport(smtpOptions);
+		fallbackTransport = transports.smtp;
 	} else {
 		fallbackTransport = transports.sendmail;
 	}
