@@ -14,23 +14,15 @@ var clean = require('postcss-clean');
 var Minifier = module.exports;
 
 function setupDebugging() {
-	/**
-	 * Check if the parent process is running with the debug option --debug (or --debug-brk)
-	 */
-	var forkProcessParams = {};
-	if (global.v8debug || parseInt(process.execArgv.indexOf('--debug'), 10) !== -1) {
-		/**
-		 * use the line below if you want to debug minifier.js script too (or even --debug-brk option, but
-		 * you'll have to setup your debugger and connect to the forked process)
-		 */
-		// forkProcessParams = { execArgv: ['--debug=' + (global.process.debugPort + 1), '--nolazy'] };
+	var forkProcessParams = {
+		execArgv: [],
+	};
 
-		/**
-		 * otherwise, just clean up --debug/--debug-brk options which are set up by default from the parent one
-		 */
-		forkProcessParams = {
-			execArgv: [],
-		};
+	var inspectArg = process.execArgv.find(arg => arg.startsWith('--inspect'));
+	if (global.v8debug || inspectArg) {
+		var num = inspectArg.split('=')[1];
+		num = num && parseInt(num, 10) + 1;
+		forkProcessParams = { execArgv: ['--inspect=' + num, '--nolazy'] };
 	}
 
 	return forkProcessParams;

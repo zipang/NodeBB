@@ -16,10 +16,17 @@ exports.compare = function (password, hash, callback) {
 };
 
 function forkChild(message, callback) {
-	var forkProcessParams = {};
-	if (global.v8debug || parseInt(process.execArgv.indexOf('--debug'), 10) !== -1) {
-		forkProcessParams = { execArgv: ['--debug=' + (5859), '--nolazy'] };
+	var forkProcessParams = {
+		execArgv: [],
+	};
+
+	var inspectArg = process.execArgv.find(arg => arg.startsWith('--inspect'));
+	if (global.v8debug || inspectArg) {
+		var num = inspectArg.split('=')[1];
+		num = num && parseInt(num, 10) + 1;
+		forkProcessParams = { execArgv: ['--inspect=' + num, '--nolazy'] };
 	}
+
 	var child = fork(path.join(__dirname, 'bcrypt'), [], forkProcessParams);
 
 	child.on('message', function (msg) {
