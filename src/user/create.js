@@ -25,6 +25,7 @@ module.exports = function (User) {
 			},
 			function (next) {
 				userData = {
+					uid: data.uid,
 					username: data.username,
 					userslug: data.userslug,
 					email: data.email || '',
@@ -59,11 +60,17 @@ module.exports = function (User) {
 			},
 			function (results, next) {
 				userData = results.user;
-				db.incrObjectField('global', 'nextUid', next);
+				if (userData.uid) {
+					next(null, -1);
+				} else {
+					db.incrObjectField('global', 'nextUid', next);
+				}
 			},
-			function (uid, next) {
-				userData.uid = uid;
-				db.setObject('user:' + uid, userData, next);
+			function (nextUid, next) {
+				if (!userData.uid) {
+					userData.uid = nextUid;
+				}
+				db.setObject('user:' + userData.uid, userData, next);
 			},
 			function (next) {
 				async.parallel([
