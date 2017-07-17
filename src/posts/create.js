@@ -33,7 +33,11 @@ module.exports = function (Posts) {
 
 		async.waterfall([
 			function (next) {
-				db.incrObjectField('global', 'nextPid', next);
+				if (!data.pid) {
+					db.incrObjectField('global', 'nextPid', next);
+				} else {
+					next(null, data.pid);
+				}
 			},
 			function (pid, next) {
 				postData = {

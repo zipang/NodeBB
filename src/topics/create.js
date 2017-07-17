@@ -26,7 +26,11 @@ module.exports = function (Topics) {
 				Topics.resizeAndUploadThumb(data, next);
 			},
 			function (next) {
-				db.incrObjectField('global', 'nextTid', next);
+				if (!data.tid) {
+					db.incrObjectField('global', 'nextTid', next);
+				} else {
+					next(null, data.tid);
+				}
 			},
 			function (tid, next) {
 				topicData = {
@@ -37,9 +41,9 @@ module.exports = function (Topics) {
 					title: data.title,
 					slug: tid + '/' + (utils.slugify(data.title) || 'topic'),
 					timestamp: timestamp,
-					lastposttime: 0,
-					postcount: 0,
-					viewcount: 0,
+					lastposttime: data.lastposttime || 0,
+					postcount: data.postcount || 0,
+					viewcount: data.viewcount || 0,
 					locked: 0,
 					deleted: 0,
 					pinned: 0,
