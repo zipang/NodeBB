@@ -15,7 +15,11 @@ module.exports = function (Categories) {
 
 		async.waterfall([
 			function (next) {
-				db.incrObjectField('global', 'nextCid', next);
+				if (!data.cid) {
+					db.incrObjectField('global', 'nextCid', next);
+				} else {
+					next(null, data.cid);
+				}
 			},
 			function (cid, next) {
 				data.name = data.name || 'Category ' + cid;
