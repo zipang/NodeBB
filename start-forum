@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+cd "/Users/christophe/Workspace/My Projects/mathforu/scrapper"
+redis-server redis.conf
+./nodebb start

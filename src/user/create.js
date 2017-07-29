@@ -29,6 +29,7 @@ module.exports = function (User) {
 					username: data.username,
 					userslug: data.userslug,
 					email: data.email || '',
+					showemail: data.showemail || 0,
 					joindate: data.joindate || timestamp,
 					lastonline: data.lastonline || timestamp,
 					picture: data.picture || '',
@@ -119,20 +120,29 @@ module.exports = function (User) {
 						}
 					},
 					function (next) {
-						if (!data.password) {
-							return next();
-						}
 
-						User.hashPassword(data.password, function (err, hash) {
-							if (err) {
-								return next(err);
-							}
-
+						if (data.hashedPassword) {
+							console.log("Keep hashed password");
 							async.parallel([
-								async.apply(User.setUserField, userData.uid, 'password', hash),
+								async.apply(User.setUserField, userData.uid, 'password', data.hashedPassword),
 								async.apply(User.reset.updateExpiry, userData.uid),
 							], next);
-						});
+
+						} else if (!data.password) {
+							return next();
+
+						} else {
+							User.hashPassword(data.password, function (err, hash) {
+								if (err) {
+									return next(err);
+								}
+
+								async.parallel([
+									async.apply(User.setUserField, userData.uid, 'password', hash),
+									async.apply(User.reset.updateExpiry, userData.uid),
+								], next);
+							});
+						}
 					},
 					function (next) {
 						User.updateDigestSetting(userData.uid, meta.config.dailyDigestFreq, next);
@@ -158,9 +168,9 @@ module.exports = function (User) {
 					next();
 				}
 			},
-			userNameValid: function (next) {
-				next((!utils.isUserNameValid(userData.username) || !userData.userslug) ? new Error('[[error:invalid-username, ' + userData.username + ']]') : null);
-			},
+			// userNameValid: function (next) {
+			// 	next((!utils.isUserNameValid(userData.username) || !userData.userslug) ? new Error('[[error:invalid-username, ' + userData.username + ']]') : null);
+			// },
 			passwordValid: function (next) {
 				if (userData.password) {
 					User.isPasswordValid(userData.password, next);
