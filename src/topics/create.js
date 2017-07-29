@@ -46,7 +46,7 @@ module.exports = function (Topics) {
 					viewcount: data.viewcount || 0,
 					locked: 0,
 					deleted: 0,
-					pinned: 0,
+					pinned: data.pinned || 0
 				};
 
 				if (data.thumb) {
