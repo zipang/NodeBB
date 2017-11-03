@@ -158,6 +158,7 @@ describe('Controllers', function () {
 		var data = {
 			username: 'interstitial',
 			password: '123456',
+			'password-confirm': '123456',
 			email: 'test@me.com',
 		};
 
@@ -215,7 +216,7 @@ describe('Controllers', function () {
 	});
 
 	it('should load /outgoing?url=<url>', function (done) {
-		request(nconf.get('url') + '/outgoing?url=http//youtube.com', function (err, res, body) {
+		request(nconf.get('url') + '/outgoing?url=http://youtube.com', function (err, res, body) {
 			assert.ifError(err);
 			assert.equal(res.statusCode, 200);
 			assert(body);
@@ -225,6 +226,15 @@ describe('Controllers', function () {
 
 	it('should 404 on /outgoing with no url', function (done) {
 		request(nconf.get('url') + '/outgoing', function (err, res, body) {
+			assert.ifError(err);
+			assert.equal(res.statusCode, 404);
+			assert(body);
+			done();
+		});
+	});
+
+	it('should 404 on /outgoing with javascript: protocol', function (done) {
+		request(nconf.get('url') + '/outgoing?url=javascript:alert(1);', function (err, res, body) {
 			assert.ifError(err);
 			assert.equal(res.statusCode, 404);
 			assert(body);
@@ -1232,11 +1242,31 @@ describe('Controllers', function () {
 	});
 
 	describe('post redirect', function () {
+		var jar;
+		before(function (done) {
+			helpers.loginUser('foo', 'barbar', function (err, _jar) {
+				assert.ifError(err);
+				jar = _jar;
+				done();
+			});
+		});
+
 		it('should 404 for invalid pid', function (done) {
 			request(nconf.get('url') + '/api/post/fail', function (err, res) {
 				assert.ifError(err);
 				assert.equal(res.statusCode, 404);
 				done();
+			});
+		});
+
+		it('should 403 if user does not have read privilege', function (done) {
+			privileges.categories.rescind(['read'], category.cid, 'registered-users', function (err) {
+				assert.ifError(err);
+				request(nconf.get('url') + '/api/post/' + pid, { jar: jar }, function (err, res) {
+					assert.ifError(err);
+					assert.equal(res.statusCode, 403);
+					privileges.categories.give(['read'], category.cid, 'registered-users', done);
+				});
 			});
 		});
 
@@ -1766,6 +1796,25 @@ describe('Controllers', function () {
 				assert.equal(res.statusCode, 200);
 				assert.equal(res.headers['x-redirect'], '/unread?page=1');
 				assert.equal(body, '/unread?page=1');
+				done();
+			});
+		});
+	});
+
+	describe('admin middlewares', function () {
+		it('should redirect to login', function (done) {
+			request(nconf.get('url') + '//api/admin/advanced/database', { json: true }, function (err, res, body) {
+				assert.ifError(err);
+				assert.equal(res.statusCode, 401);
+				done();
+			});
+		});
+
+		it('should redirect to login', function (done) {
+			request(nconf.get('url') + '//admin/advanced/database', { json: true }, function (err, res, body) {
+				assert.ifError(err);
+				assert.equal(res.statusCode, 200);
+				assert(body.indexOf('Login to your account') !== -1);
 				done();
 			});
 		});

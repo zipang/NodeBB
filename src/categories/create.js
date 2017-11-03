@@ -160,7 +160,7 @@ module.exports = function (Categories) {
 		async.waterfall([
 			function (next) {
 				plugins.fireHook('filter:categories.copyPrivilegesFrom', {
-					privileges: privileges.privilegeList,
+					privileges: privileges.privilegeList.slice(),
 					fromCid: fromCid,
 					toCid: toCid,
 				}, next);

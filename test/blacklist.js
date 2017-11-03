@@ -1,6 +1,6 @@
 'use strict';
 
-/* global require, after, before*/
+/* global require, after, before */
 
 
 var async = require('async');
@@ -70,6 +70,11 @@ describe('blacklist', function () {
 
 	it('should fail ip test against blacklist sync', function (done) {
 		assert(blacklist.test('1.1.1.1'));
+		done();
+	});
+
+	it('should pass ip test and not crash with ipv6 address', function (done) {
+		assert(!blacklist.test('2001:db8:85a3:0:0:8a2e:370:7334'));
 		done();
 	});
 });

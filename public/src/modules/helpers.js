@@ -3,15 +3,13 @@
 (function (factory) {
 	if (typeof module === 'object' && module.exports) {
 		var relative_path = require('nconf').get('relative_path');
-		module.exports = factory(require('../utils'), require('templates.js'), require('string'), relative_path);
+		module.exports = factory(require('../utils'), require('benchpressjs'), require('string'), relative_path);
 	} else if (typeof define === 'function' && define.amd) {
-		define('helpers', ['string'], function (string) {
-			return factory(utils, templates, string, config.relative_path);
+		define('helpers', ['benchpress', 'string'], function (Benchpress, string) {
+			return factory(utils, Benchpress, string, config.relative_path);
 		});
-	} else {
-		window.helpers = factory(utils, templates, window.String, config.relative_path);
 	}
-}(function (utils, templates, S, relative_path) {
+}(function (utils, Benchpress, S, relative_path) {
 	var helpers = {
 		displayMenuItem: displayMenuItem,
 		buildMetaTag: buildMetaTag,
@@ -30,7 +28,12 @@
 		renderDigestAvatar: renderDigestAvatar,
 		userAgentIcons: userAgentIcons,
 		register: register,
+		__escape: identity,
 	};
+
+	function identity(str) {
+		return str;
+	}
 
 	function displayMenuItem(data, index) {
 		var item = data.navigation[index];
@@ -41,6 +44,7 @@
 		var loggedIn = data.config ? data.config.loggedIn : false;
 		if (properties) {
 			if ((properties.loggedIn && !loggedIn) ||
+				(properties.guestOnly && loggedIn) ||
 				(properties.globalMod && !data.isGlobalMod && !data.isAdmin) ||
 				(properties.adminOnly && !data.isAdmin) ||
 				(properties.searchInstalled && !data.searchEnabled)) {
@@ -73,8 +77,9 @@
 		var type = tag.type ? 'type="' + tag.type + '" ' : '';
 		var href = tag.href ? 'href="' + tag.href + '" ' : '';
 		var sizes = tag.sizes ? 'sizes="' + tag.sizes + '" ' : '';
+		var title = tag.title ? 'title="' + tag.title + '" ' : '';
 
-		return '<link ' + link + rel + type + sizes + href + '/>\n\t';
+		return '<link ' + link + rel + type + sizes + title + href + '/>\n\t';
 	}
 
 	function stringify(obj) {
@@ -269,7 +274,7 @@
 
 	function register() {
 		Object.keys(helpers).forEach(function (helperName) {
-			templates.registerHelper(helperName, helpers[helperName]);
+			Benchpress.registerHelper(helperName, helpers[helperName]);
 		});
 	}
 

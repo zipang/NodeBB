@@ -654,8 +654,8 @@ describe('Topic\'s', function () {
 				function (next) {
 					topicPids = replies.map(function (reply) { return reply.pid; });
 					socketTopics.bookmark({ uid: topic.userId }, { tid: newTopic.tid, index: originalBookmark }, next);
-				}],
-				done);
+				},
+			], done);
 		});
 
 		it('should fail with invalid data', function (done) {
@@ -711,7 +711,8 @@ describe('Topic\'s', function () {
 						'Fork test, no bookmark update',
 						topicPids.slice(1, 3),
 						newTopic.tid,
-						next);
+						next
+					);
 				},
 				function (forkedTopicData, next) {
 					topics.getUserBookmark(newTopic.tid, topic.userId, next);
@@ -1501,13 +1502,6 @@ describe('Topic\'s', function () {
 		it('should error with invalid data', function (done) {
 			socketTopics.search({ uid: adminUid }, null, function (err) {
 				assert.equal(err.message, '[[error:invalid-data]]');
-				done();
-			});
-		});
-
-		it('should error if no search plugin', function (done) {
-			socketTopics.search({ uid: adminUid }, { tid: topic.tid, term: 'test' }, function (err) {
-				assert.equal(err.message, '[[error:no-plugins-available]]');
 				done();
 			});
 		});

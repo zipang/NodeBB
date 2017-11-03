@@ -2,11 +2,14 @@
 
 var async = require('async');
 var path = require('path');
+var fs = require('fs');
 var csrf = require('csurf');
 var validator = require('validator');
 var nconf = require('nconf');
 var ensureLoggedIn = require('connect-ensure-login');
 var toobusy = require('toobusy-js');
+var Benchpress = require('benchpressjs');
+var LRU = require('lru-cache');
 
 var plugins = require('../plugins');
 var meta = require('../meta');
@@ -21,6 +24,10 @@ var controllers = {
 	helpers: require('../controllers/helpers'),
 };
 
+var delayCache = LRU({
+	maxAge: 1000 * 60,
+});
+
 var middleware = module.exports;
 
 middleware.applyCSRF = csrf();
@@ -33,6 +40,15 @@ require('./render')(middleware);
 require('./maintenance')(middleware);
 require('./user')(middleware);
 require('./headers')(middleware);
+
+middleware.stripLeadingSlashes = function (req, res, next) {
+	var target = req.originalUrl.replace(nconf.get('relative_path'), '');
+	if (target.startsWith('//')) {
+		res.redirect(nconf.get('relative_path') + target.replace(/^\/+/, '/'));
+	} else {
+		setImmediate(next);
+	}
+};
 
 middleware.pageView = function (req, res, next) {
 	analytics.pageView({
@@ -169,6 +185,49 @@ middleware.processTimeagoLocales = function (req, res, next) {
 			res.status(200).sendFile(path, {
 				maxAge: req.app.enabled('cache') ? 5184000000 : 0,
 			});
+		},
+	], next);
+};
+
+middleware.delayLoading = function (req, res, next) {
+	// Introduces an artificial delay during load so that brute force attacks are effectively mitigated
+
+	// Add IP to cache so if too many requests are made, subsequent requests are blocked for a minute
+	var timesSeen = delayCache.get(req.ip) || 0;
+	if (timesSeen > 10) {
+		return res.sendStatus(429);
+	}
+	delayCache.set(req.ip, timesSeen += 1);
+
+	setTimeout(next, 1000);
+};
+
+var viewsDir = nconf.get('views_dir');
+middleware.templatesOnDemand = function (req, res, next) {
+	var filePath = req.filePath || path.join(viewsDir, req.path);
+	if (!filePath.endsWith('.js')) {
+		return next();
+	}
+
+	async.waterfall([
+		function (cb) {
+			file.exists(filePath, cb);
+		},
+		function (exists, cb) {
+			if (exists) {
+				return next();
+			}
+
+			fs.readFile(filePath.replace(/\.js$/, '.tpl'), cb);
+		},
+		function (source, cb) {
+			Benchpress.precompile({
+				source: source.toString(),
+				minify: global.env !== 'development',
+			}, cb);
+		},
+		function (compiled, cb) {
+			fs.writeFile(filePath, compiled, cb);
 		},
 	], next);
 };

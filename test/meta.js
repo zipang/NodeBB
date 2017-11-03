@@ -275,4 +275,29 @@ describe('meta', function () {
 			});
 		});
 	});
+
+	describe('debugFork', function () {
+		var oldArgv;
+		before(function () {
+			oldArgv = process.execArgv;
+			process.execArgv = ['--debug=5858', '--foo=1'];
+		});
+
+		it('should detect debugging', function (done) {
+			var debugFork = require('../src/meta/debugFork');
+			assert(!debugFork.debugging);
+
+			var debugForkPath = require.resolve('../src/meta/debugFork');
+			delete require.cache[debugForkPath];
+
+			debugFork = require('../src/meta/debugFork');
+			assert(debugFork.debugging);
+
+			done();
+		});
+
+		after(function () {
+			process.execArgv = oldArgv;
+		});
+	});
 });

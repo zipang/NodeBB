@@ -37,6 +37,10 @@ image.resizeImage = function (data, callback) {
 			var y = 0;
 			var crop;
 
+			if (image._exif && image._exif.tags && image._exif.tags.Orientation) {
+				image.exifRotate();
+			}
+
 			if (origRatio !== desiredRatio) {
 				if (desiredRatio > origRatio) {
 					desiredRatio = 1 / desiredRatio;
@@ -137,7 +141,7 @@ image.writeImageDataToTempFile = function (imageData, callback) {
 
 	var filepath = path.join(os.tmpdir(), filename + extension);
 
-	var buffer = new Buffer(imageData.slice(imageData.indexOf('base64') + 7), 'base64');
+	var buffer = Buffer.from(imageData.slice(imageData.indexOf('base64') + 7), 'base64');
 
 	fs.writeFile(filepath, buffer, {
 		encoding: 'base64',

@@ -89,7 +89,7 @@ uploadsController.uploadLogo = function (req, res, next) {
 uploadsController.uploadSound = function (req, res, next) {
 	var uploadedFile = req.files.files[0];
 
-	var mimeType = mime.lookup(uploadedFile.name);
+	var mimeType = mime.getType(uploadedFile.name);
 	if (!/^audio\//.test(mimeType)) {
 		return next(Error('[[error:invalid-data]]'));
 	}
@@ -144,6 +144,25 @@ function uploadImage(filename, folder, uploadedFile, req, res, next) {
 				plugins.fireHook('filter:uploadImage', { image: uploadedFile, uid: req.user.uid }, next);
 			} else {
 				file.saveFileToLocal(filename, folder, uploadedFile.path, next);
+			}
+		},
+		function (imageData, next) {
+			// Post-processing for site-logo
+			if (path.basename(filename, path.extname(filename)) === 'site-logo' && folder === 'system') {
+				var uploadPath = path.join(nconf.get('upload_path'), folder, 'site-logo-x50.png');
+				async.series([
+					async.apply(image.resizeImage, {
+						path: uploadedFile.path,
+						target: uploadPath,
+						extension: 'png',
+						height: 50,
+					}),
+					async.apply(meta.configs.set, 'brand:emailLogo', path.join(nconf.get('upload_url'), 'system/site-logo-x50.png')),
+				], function (err) {
+					next(err, imageData);
+				});
+			} else {
+				setImmediate(next, null, imageData);
 			}
 		},
 	], function (err, image) {

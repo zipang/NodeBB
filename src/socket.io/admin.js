@@ -2,7 +2,6 @@
 
 var async = require('async');
 var winston = require('winston');
-var nconf = require('nconf');
 
 var meta = require('../meta');
 var plugins = require('../plugins');
@@ -150,11 +149,11 @@ SocketAdmin.plugins.upgrade = function (socket, data, callback) {
 };
 
 SocketAdmin.widgets.set = function (socket, data, callback) {
-	if (!data) {
+	if (!Array.isArray(data)) {
 		return callback(new Error('[[error:invalid-data]]'));
 	}
 
-	widgets.setArea(data, callback);
+	async.eachSeries(data, widgets.setArea, callback);
 };
 
 SocketAdmin.config.set = function (socket, data, callback) {
@@ -228,8 +227,6 @@ SocketAdmin.email.test = function (socket, data, callback) {
 	var site_title = meta.config.title || 'NodeBB';
 	var payload = {
 		subject: '[' + site_title + '] Test Email',
-		site_title: site_title,
-		url: nconf.get('url'),
 	};
 
 	switch (data.template) {
@@ -252,7 +249,7 @@ SocketAdmin.email.test = function (socket, data, callback) {
 	case 'welcome':
 		userEmail.sendValidationEmail(socket.uid, {
 			force: 1,
-		});
+		}, callback);
 		break;
 
 	default:

@@ -2,8 +2,8 @@
 
 var async = require('async');
 var winston = require('winston');
-var templates = require('templates.js');
 var _ = require('lodash');
+var Benchpress = require('benchpressjs');
 
 var plugins = require('../plugins');
 var translator = require('../translator');
@@ -70,7 +70,7 @@ function renderWidget(widget, uid, options, callback) {
 			}
 		},
 		function (config, next) {
-			var templateData = _.assign(options.templateData, { config: config });
+			var templateData = _.assign({ }, options.templateData, { config: config });
 			plugins.fireHook('filter:widget.render:' + widget.widget, {
 				uid: uid,
 				area: options,
@@ -93,12 +93,12 @@ function renderWidget(widget, uid, options, callback) {
 
 			if (widget.data.container && widget.data.container.match('{body}')) {
 				translator.translate(widget.data.title, function (title) {
-					html = templates.parse(widget.data.container, {
+					Benchpress.compileParse(widget.data.container, {
 						title: title,
 						body: html,
+					}, function (err, html) {
+						next(err, { html: html });
 					});
-
-					next(null, { html: html });
 				});
 			} else {
 				next(null, { html: html });
@@ -193,7 +193,7 @@ widgets.reset = function (callback) {
 		function (results, next) {
 			drafts = results.drafts || [];
 
-			async.each(results.areas, function (area, next) {
+			async.eachSeries(results.areas, function (area, next) {
 				async.waterfall([
 					function (next) {
 						widgets.getArea(area.template, area.location, next);
@@ -214,6 +214,37 @@ widgets.reset = function (callback) {
 			}, next);
 		},
 	], callback);
+};
+
+widgets.resetTemplate = function (template, callback) {
+	db.getObject('widgets:' + template + '.tpl', function (err, area) {
+		if (err) {
+			return callback();
+		}
+
+		var toBeDrafted = [];
+		for (var location in area) {
+			if (area.hasOwnProperty(location)) {
+				toBeDrafted = toBeDrafted.concat(JSON.parse(area[location]));
+			}
+		}
+
+		db.delete('widgets:' + template + '.tpl');
+		db.getObjectField('widgets:global', 'drafts', function (err, draftWidgets) {
+			if (err) {
+				return callback();
+			}
+
+			draftWidgets = JSON.parse(draftWidgets).concat(toBeDrafted);
+			db.setObjectField('widgets:global', 'drafts', JSON.stringify(draftWidgets), callback);
+		});
+	});
+};
+
+widgets.resetTemplates = function (templates, callback) {
+	async.eachSeries(templates, function (template, next) {
+		widgets.resetTemplate(template, next);
+	}, callback);
 };
 
 module.exports = widgets;
