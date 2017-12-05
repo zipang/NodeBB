@@ -8,6 +8,7 @@ var meta = require('../meta');
 var topics = require('../topics');
 var notifications = require('../notifications');
 var privileges = require('../privileges');
+var plugins = require('../plugins');
 var socketHelpers = require('../socket.io/helpers');
 
 module.exports = function (Posts) {
@@ -18,7 +19,14 @@ module.exports = function (Posts) {
 			},
 			function (userData, next) {
 				var shouldQueue = parseInt(meta.config.postQueue, 10) === 1 && (!parseInt(uid, 10) || (parseInt(userData.reputation, 10) <= 0 && parseInt(userData.postcount, 10) <= 0));
-				next(null, shouldQueue);
+				plugins.fireHook('filter:post.shouldQueue', {
+					shouldQueue: shouldQueue,
+					uid: uid,
+					data: data,
+				}, next);
+			},
+			function (result, next) {
+				next(null, result.shouldQueue);
 			},
 		], callback);
 	};
@@ -42,26 +50,36 @@ module.exports = function (Posts) {
 				}, next);
 			},
 			function (next) {
-				user.setUserField(data.uid, 'lastposttime', Date.now(), next);
+				user.setUserField(data.uid, 'lastqueuetime', Date.now(), next);
 			},
 			function (next) {
-				notifications.create({
-					nid: 'post-queued-' + id,
-					mergeId: 'post-queue',
-					bodyShort: '[[notifications:post_awaiting_review]]',
-					bodyLong: data.content,
-					path: '/post-queue',
+				async.parallel({
+					notification: function (next) {
+						notifications.create({
+							type: 'post-queue',
+							nid: 'post-queue-' + id,
+							mergeId: 'post-queue',
+							bodyShort: '[[notifications:post_awaiting_review]]',
+							bodyLong: data.content,
+							path: '/post-queue',
+						}, next);
+					},
+					cid: function (next) {
+						getCid(type, data, next);
+					},
 				}, next);
 			},
-			function (notification, next) {
-				if (notification) {
-					notifications.pushGroups(notification, ['administrators', 'Global Moderators'], next);
+			function (results, next) {
+				if (results.notification) {
+					notifications.pushGroups(results.notification, ['administrators', 'Global Moderators', 'cid:' + results.cid + ':privileges:moderate'], next);
 				} else {
 					next();
 				}
 			},
 			function (next) {
 				next(null, {
+					id: id,
+					type: type,
 					queued: true,
 					message: '[[success:post-queued]]',
 				});
@@ -69,26 +87,32 @@ module.exports = function (Posts) {
 		], callback);
 	};
 
+	function getCid(type, data, callback) {
+		if (type === 'topic') {
+			return setImmediate(callback, null, data.cid);
+		} else if (type === 'reply') {
+			topics.getTopicField(data.tid, 'cid', callback);
+		} else {
+			return setImmediate(callback, null, null);
+		}
+	}
+
 	function canPost(type, data, callback) {
 		async.waterfall([
 			function (next) {
-				if (type === 'topic') {
-					next(null, data.cid);
-				} else if (type === 'reply') {
-					topics.getTopicField(data.tid, 'cid', next);
-				}
+				getCid(type, data, next);
 			},
 			function (cid, next) {
 				async.parallel({
 					canPost: function (next) {
 						if (type === 'topic') {
-							privileges.categories.can('topics:create', data.cid, data.uid, next);
+							privileges.categories.can('topics:create', cid, data.uid, next);
 						} else if (type === 'reply') {
 							privileges.categories.can('topics:reply', cid, data.uid, next);
 						}
 					},
-					isReadyToPost: function (next) {
-						user.isReadyToPost(data.uid, cid, next);
+					isReadyToQueue: function (next) {
+						user.isReadyToQueue(data.uid, cid, next);
 					},
 				}, next);
 			},
@@ -118,18 +142,12 @@ module.exports = function (Posts) {
 	Posts.submitFromQueue = function (id, callback) {
 		async.waterfall([
 			function (next) {
-				db.getObject('post:queue:' + id, next);
+				getParsedObject(id, next);
 			},
 			function (data, next) {
 				if (!data) {
 					return callback();
 				}
-				try {
-					data.data = JSON.parse(data.data);
-				} catch (err) {
-					return next(err);
-				}
-
 				if (data.type === 'topic') {
 					createTopic(data.data, next);
 				} else if (data.type === 'reply') {
@@ -141,6 +159,25 @@ module.exports = function (Posts) {
 			},
 		], callback);
 	};
+
+	function getParsedObject(id, callback) {
+		async.waterfall([
+			function (next) {
+				db.getObject('post:queue:' + id, next);
+			},
+			function (data, next) {
+				if (!data) {
+					return callback();
+				}
+				try {
+					data.data = JSON.parse(data.data);
+				} catch (err) {
+					return next(err);
+				}
+				next(null, data);
+			},
+		], callback);
+	}
 
 	function createTopic(data, callback) {
 		async.waterfall([
@@ -170,4 +207,56 @@ module.exports = function (Posts) {
 			},
 		], callback);
 	}
+
+	Posts.editQueuedContent = function (uid, id, content, callback) {
+		async.waterfall([
+			function (next) {
+				Posts.canEditQueue(uid, id, next);
+			},
+			function (canEditQueue, next) {
+				if (!canEditQueue) {
+					return callback(new Error('[[error:no-privileges]]'));
+				}
+				getParsedObject(id, next);
+			},
+			function (data, next) {
+				if (!data) {
+					return callback();
+				}
+				data.data.content = content;
+				db.setObjectField('post:queue:' + id, 'data', JSON.stringify(data.data), next);
+			},
+		], callback);
+	};
+
+	Posts.canEditQueue = function (uid, id, callback) {
+		async.waterfall([
+			function (next) {
+				async.parallel({
+					isAdminOrGlobalMod: function (next) {
+						user.isAdminOrGlobalMod(uid, next);
+					},
+					data: function (next) {
+						getParsedObject(id, next);
+					},
+				}, next);
+			},
+			function (results, next) {
+				if (results.isAdminOrGlobalMod) {
+					return callback(null, true);
+				}
+				if (!results.data) {
+					return callback(null, false);
+				}
+				if (results.data.type === 'topic') {
+					next(null, results.data.data.cid);
+				} else if (results.data.type === 'reply') {
+					topics.getTopicField(results.data.data.tid, 'cid', next);
+				}
+			},
+			function (cid, next) {
+				user.isModerator(uid, cid, next);
+			},
+		], callback);
+	};
 };

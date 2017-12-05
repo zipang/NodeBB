@@ -4,6 +4,7 @@ var async = require('async');
 var path = require('path');
 var semver = require('semver');
 var readline = require('readline');
+var winston = require('winston');
 
 var db = require('./database');
 var file = require('../src/file');
@@ -17,7 +18,7 @@ var file = require('../src/file');
  * 3. Add your script under the "method" property
  */
 
-var Upgrade = {};
+var Upgrade = module.exports;
 
 Upgrade.getAll = function (callback) {
 	async.waterfall([
@@ -34,6 +35,37 @@ Upgrade.getAll = function (callback) {
 
 				return semver.compare(versionA, versionB);
 			}));
+		},
+		async.apply(Upgrade.appendPluginScripts),
+	], callback);
+};
+
+Upgrade.appendPluginScripts = function (files, callback) {
+	async.waterfall([
+		// Find all active plugins
+		async.apply(db.getSortedSetRange.bind(db), 'plugins:active', 0, -1),
+
+		// Read plugin.json and check for upgrade scripts
+		function (plugins, next) {
+			async.each(plugins, function (plugin, next) {
+				var configPath = path.join(__dirname, '../node_modules', plugin, 'plugin.json');
+				try {
+					var pluginConfig = require(configPath);
+					if (pluginConfig.hasOwnProperty('upgrades') && Array.isArray(pluginConfig.upgrades)) {
+						pluginConfig.upgrades.forEach(function (script) {
+							files.push(path.join(path.dirname(configPath), script));
+						});
+					}
+
+					next();
+				} catch (e) {
+					winston.warn('[upgrade/appendPluginScripts] Unable to read plugin.json for plugin `' + plugin + '`. Skipping.');
+					process.nextTick(next);
+				}
+			}, function (err) {
+				// Return list of upgrade scripts for continued processing
+				next(err, files);
+			});
 		},
 	], callback);
 };
@@ -59,7 +91,7 @@ Upgrade.check = function (callback) {
 };
 
 Upgrade.run = function (callback) {
-	process.stdout.write('\nParsing upgrade scripts... ');
+	console.log('\nParsing upgrade scripts... ');
 	var queue = [];
 	var skipped = 0;
 
@@ -87,27 +119,23 @@ Upgrade.run = function (callback) {
 	});
 };
 
-Upgrade.runSingle = function (query, callback) {
-	process.stdout.write('\nParsing upgrade scripts... ');
+Upgrade.runParticular = function (names, callback) {
+	console.log('\nParsing upgrade scripts... ');
 
 	async.waterfall([
 		async.apply(file.walk, path.join(__dirname, './upgrades')),
 		function (files, next) {
-			next(null, files.filter(function (file) {
-				return path.basename(file, '.js') === query;
-			}));
-		},
-	], function (err, files) {
-		if (err) {
-			return callback(err);
-		}
+			var upgrades = files.filter(function (file) {
+				return names.indexOf(path.basename(file, '.js')) !== -1;
+			});
 
-		Upgrade.process(files, 0, callback);
-	});
+			Upgrade.process(upgrades, 0, next);
+		},
+	], callback);
 };
 
 Upgrade.process = function (files, skipCount, callback) {
-	process.stdout.write('OK'.green + ' | '.reset + String(files.length).cyan + ' script(s) found'.cyan + (skipCount > 0 ? ', '.cyan + String(skipCount).cyan + ' skipped'.cyan : '') + '\n'.reset);
+	console.log('OK'.green + ' | '.reset + String(files.length).cyan + ' script(s) found'.cyan + (skipCount > 0 ? ', '.cyan + String(skipCount).cyan + ' skipped'.cyan : ''));
 
 	async.waterfall([
 		function (next) {
@@ -129,14 +157,14 @@ Upgrade.process = function (files, skipCount, callback) {
 					date: date,
 				};
 
-				process.stdout.write('  → '.white + String('[' + [date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate()].join('/') + '] ').gray + String(scriptExport.name).reset + '...\n');
+				console.log('  → '.white + String('[' + [date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate()].join('/') + '] ').gray + String(scriptExport.name).reset + '...');
 
 				// For backwards compatibility, cross-reference with schemaDate (if found). If a script's date is older, skip it
 				if ((!results.schemaDate && !results.schemaLogCount) || (scriptExport.timestamp <= results.schemaDate && semver.lt(version, '1.5.0'))) {
 					readline.clearLine(process.stdout, 0);
 					readline.cursorTo(process.stdout, 0);
 					readline.moveCursor(process.stdout, 0, -1);
-					process.stdout.write('  → '.white + String('[' + [date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate()].join('/') + '] ').gray + String(scriptExport.name).reset + '... ' + 'skipped\n'.grey);
+					console.log('  → '.white + String('[' + [date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate()].join('/') + '] ').gray + String(scriptExport.name).reset + '... ' + 'skipped'.grey);
 					db.sortedSetAdd('schemaLog', Date.now(), path.basename(file, '.js'), next);
 					return;
 				}
@@ -146,14 +174,14 @@ Upgrade.process = function (files, skipCount, callback) {
 					progress: progress,
 				})(function (err) {
 					if (err) {
-						process.stdout.write('error\n'.red);
+						console.error('Error occurred');
 						return next(err);
 					}
 
 					readline.clearLine(process.stdout, 0);
 					readline.cursorTo(process.stdout, 0);
 					readline.moveCursor(process.stdout, 0, -1);
-					process.stdout.write('  → '.white + String('[' + [date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate()].join('/') + '] ').gray + String(scriptExport.name).reset + '... ' + 'OK\n'.green);
+					console.log('  → '.white + String('[' + [date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate()].join('/') + '] ').gray + String(scriptExport.name).reset + '... ' + 'OK'.green);
 
 					// Record success in schemaLog
 					db.sortedSetAdd('schemaLog', Date.now(), path.basename(file, '.js'), next);
@@ -161,14 +189,14 @@ Upgrade.process = function (files, skipCount, callback) {
 			}, next);
 		},
 		function (next) {
-			process.stdout.write('Upgrade complete!\n\n'.green);
+			console.log('Upgrade complete!\n'.green);
 			setImmediate(next);
 		},
 	], callback);
 };
 
-Upgrade.incrementProgress = function () {
-	this.current += 1;
+Upgrade.incrementProgress = function (value) {
+	this.current += value || 1;
 
 	// Redraw the progress bar
 	var percentage = 0;
@@ -184,4 +212,3 @@ Upgrade.incrementProgress = function () {
 	process.stdout.write('    [' + (filled ? new Array(filled).join('#') : '') + new Array(unfilled).join(' ') + '] (' + this.current + '/' + (this.total || '??') + ') ' + percentage + ' ');
 };
 
-module.exports = Upgrade;

@@ -17,7 +17,7 @@
 	"filter-targetUid": "Flagged UID",
 	"filter-type": "Flag Type",
 	"filter-type-all": "Весь контент",
-	"filter-type-post": "Post",
+	"filter-type-post": "Написать",
 	"filter-state": "State",
 	"filter-assignee": "Assignee UID",
 	"filter-cid": "Категория",
@@ -54,7 +54,11 @@
 	"modal-body": "Please specify your reason for flagging %1 %2 for review. Alternatively, use one of the quick report buttons if applicable.",
 	"modal-reason-spam": "Спам",
 	"modal-reason-offensive": "Offensive",
+	"modal-reason-other": "Other (specify below)",
 	"modal-reason-custom": "Reason for reporting this content...",
 	"modal-submit": "Представить отчет",
-	"modal-submit-success": "Content has been flagged for moderation."
+	"modal-submit-success": "Content has been flagged for moderation.",
+	"modal-submit-confirm": "Confirm Submission",
+	"modal-submit-confirm-text": "You have a custom reason specified already. Are you sure you wish to submit via quick-report?",
+	"modal-submit-confirm-text-help": "Submitting a quick report will overwrite any custom reasons defined."
 }

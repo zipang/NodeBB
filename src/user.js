@@ -102,10 +102,11 @@ User.getUsersWithFields = function (uids, fields, uid, callback) {
 };
 
 User.getUsers = function (uids, uid, callback) {
-	var fields = ['uid', 'username', 'userslug', 'picture', 'status', 'flags',
-		'banned', 'banned:expire', 'joindate', 'postcount', 'reputation', 'email:confirmed', 'lastonline'];
-
-	User.getUsersWithFields(uids, fields, uid, callback);
+	User.getUsersWithFields(uids, [
+		'uid', 'username', 'userslug', 'picture', 'status',
+		'postcount', 'reputation', 'email:confirmed', 'lastonline',
+		'flags', 'banned', 'banned:expire', 'joindate',
+	], uid, callback);
 };
 
 User.getStatus = function (userData) {
@@ -207,13 +208,17 @@ User.isGlobalModerator = function (uid, callback) {
 	privileges.users.isGlobalModerator(uid, callback);
 };
 
+User.getPrivileges = function (uid, callback) {
+	async.parallel({
+		isAdmin: async.apply(User.isAdministrator, uid),
+		isGlobalModerator: async.apply(User.isGlobalModerator, uid),
+		isModeratorOfAnyCategory: async.apply(User.isModeratorOfAnyCategory, uid),
+	}, callback);
+};
+
 User.isPrivileged = function (uid, callback) {
-	async.parallel([
-		async.apply(User.isAdministrator, uid),
-		async.apply(User.isGlobalModerator, uid),
-		async.apply(User.isModeratorOfAnyCategory, uid),
-	], function (err, results) {
-		callback(err, results ? results.some(Boolean) : false);
+	User.getPrivileges(uid, function (err, results) {
+		callback(err, results ? (results.isAdmin || results.isGlobalModerator || results.isModeratorOfAnyCategory) : false);
 	});
 };
 

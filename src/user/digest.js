@@ -45,7 +45,7 @@ Digest.execute = function (payload, callback) {
 		},
 	], function (err, count) {
 		if (err) {
-			winston.error('[user/jobs] Could not send digests (' + payload.interval + '): ' + err.message);
+			winston.error('[user/jobs] Could not send digests (' + payload.interval + ')', err);
 		} else {
 			winston.info('[user/jobs] Digest (' + payload.interval + ') scheduling completed. ' + count + ' email(s) sent.');
 		}
@@ -139,6 +139,10 @@ Digest.send = function (data, callback) {
 							notifications: notifications,
 							recent: data.topics,
 							interval: data.interval,
+						}, function (err) {
+							if (err) {
+								winston.error('[user/jobs] Could not send digest email', err);
+							}
 						});
 						next();
 					},

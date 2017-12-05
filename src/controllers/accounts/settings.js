@@ -12,9 +12,7 @@ var db = require('../../database');
 var helpers = require('../helpers');
 var accountHelpers = require('./helpers');
 
-
-var settingsController = {};
-
+var settingsController = module.exports;
 
 settingsController.get = function (req, res, callback) {
 	var userData;
@@ -86,74 +84,141 @@ settingsController.get = function (req, res, callback) {
 			plugins.fireHook('filter:user.customSettings', { settings: results.settings, customSettings: [], uid: req.uid }, next);
 		},
 		function (data, next) {
-			getHomePageRoutes(userData, function (err, routes) {
-				userData.homePageRoutes = routes;
-				next(err, data);
-			});
-		},
-		function (data, next) {
 			userData.customSettings = data.customSettings;
-			userData.disableEmailSubscriptions = parseInt(meta.config.disableEmailSubscriptions, 10) === 1;
-			next();
+			async.parallel({
+				notificationSettings: function (next) {
+					getNotificationSettings(userData, next);
+				},
+				routes: function (next) {
+					getHomePageRoutes(userData, next);
+				},
+			}, next);
 		},
-	], function (err) {
-		if (err) {
-			return callback(err);
-		}
+		function (results) {
+			userData.homePageRoutes = results.routes;
+			userData.notificationSettings = results.notificationSettings;
+			userData.disableEmailSubscriptions = parseInt(meta.config.disableEmailSubscriptions, 10) === 1;
 
-		userData.dailyDigestFreqOptions = [
-			{ value: 'off', name: '[[user:digest_off]]', selected: userData.settings.dailyDigestFreq === 'off' },
-			{ value: 'day', name: '[[user:digest_daily]]', selected: userData.settings.dailyDigestFreq === 'day' },
-			{ value: 'week', name: '[[user:digest_weekly]]', selected: userData.settings.dailyDigestFreq === 'week' },
-			{ value: 'month', name: '[[user:digest_monthly]]', selected: userData.settings.dailyDigestFreq === 'month' },
-		];
+			userData.dailyDigestFreqOptions = [
+				{ value: 'off', name: '[[user:digest_off]]', selected: userData.settings.dailyDigestFreq === 'off' },
+				{ value: 'day', name: '[[user:digest_daily]]', selected: userData.settings.dailyDigestFreq === 'day' },
+				{ value: 'week', name: '[[user:digest_weekly]]', selected: userData.settings.dailyDigestFreq === 'week' },
+				{ value: 'month', name: '[[user:digest_monthly]]', selected: userData.settings.dailyDigestFreq === 'month' },
+			];
 
+			userData.bootswatchSkinOptions = [
+				{ name: 'No skin', value: 'noskin' },
+				{ name: 'Default', value: 'default' },
+				{ name: 'Cerulean', value: 'cerulean' },
+				{ name: 'Cosmo', value: 'cosmo'	},
+				{ name: 'Cyborg', value: 'cyborg' },
+				{ name: 'Darkly', value: 'darkly' },
+				{ name: 'Flatly', value: 'flatly' },
+				{ name: 'Journal', value: 'journal'	},
+				{ name: 'Lumen', value: 'lumen' },
+				{ name: 'Paper', value: 'paper' },
+				{ name: 'Readable', value: 'readable' },
+				{ name: 'Sandstone', value: 'sandstone' },
+				{ name: 'Simplex', value: 'simplex' },
+				{ name: 'Slate', value: 'slate'	},
+				{ name: 'Spacelab', value: 'spacelab' },
+				{ name: 'Superhero', value: 'superhero' },
+				{ name: 'United', value: 'united' },
+				{ name: 'Yeti', value: 'yeti' },
+			];
 
-		userData.bootswatchSkinOptions = [
-			{ name: 'No skin', value: 'noskin' },
-			{ name: 'Default', value: 'default' },
-			{ name: 'Cerulean', value: 'cerulean' },
-			{ name: 'Cosmo', value: 'cosmo'	},
-			{ name: 'Cyborg', value: 'cyborg' },
-			{ name: 'Darkly', value: 'darkly' },
-			{ name: 'Flatly', value: 'flatly' },
-			{ name: 'Journal', value: 'journal'	},
-			{ name: 'Lumen', value: 'lumen' },
-			{ name: 'Paper', value: 'paper' },
-			{ name: 'Readable', value: 'readable' },
-			{ name: 'Sandstone', value: 'sandstone' },
-			{ name: 'Simplex', value: 'simplex' },
-			{ name: 'Slate', value: 'slate'	},
-			{ name: 'Spacelab', value: 'spacelab' },
-			{ name: 'Superhero', value: 'superhero' },
-			{ name: 'United', value: 'united' },
-			{ name: 'Yeti', value: 'yeti' },
-		];
+			userData.bootswatchSkinOptions.forEach(function (skin) {
+				skin.selected = skin.value === userData.settings.bootswatchSkin;
+			});
 
-		userData.bootswatchSkinOptions.forEach(function (skin) {
-			skin.selected = skin.value === userData.settings.bootswatchSkin;
-		});
+			userData.languages.forEach(function (language) {
+				language.selected = language.code === userData.settings.userLang;
+			});
 
-		userData.languages.forEach(function (language) {
-			language.selected = language.code === userData.settings.userLang;
-		});
+			var notifFreqOptions = [
+				'all',
+				'everyTen',
+				'logarithmic',
+				'disabled',
+			];
 
-		userData.disableCustomUserSkins = parseInt(meta.config.disableCustomUserSkins, 10) === 1;
+			userData.upvoteNotifFreq = notifFreqOptions.map(function (name) {
+				return {
+					name: name,
+					selected: name === userData.notifFreqOptions,
+				};
+			});
 
-		userData.allowUserHomePage = parseInt(meta.config.allowUserHomePage, 10) === 1;
+			userData.disableCustomUserSkins = parseInt(meta.config.disableCustomUserSkins, 10) === 1;
 
-		userData.hideFullname = parseInt(meta.config.hideFullname, 10) === 1;
-		userData.hideEmail = parseInt(meta.config.hideEmail, 10) === 1;
+			userData.allowUserHomePage = parseInt(meta.config.allowUserHomePage, 10) === 1;
 
-		userData.inTopicSearchAvailable = plugins.hasListeners('filter:topic.search');
+			userData.hideFullname = parseInt(meta.config.hideFullname, 10) === 1;
+			userData.hideEmail = parseInt(meta.config.hideEmail, 10) === 1;
 
-		userData.title = '[[pages:account/settings]]';
-		userData.breadcrumbs = helpers.buildBreadcrumbs([{ text: userData.username, url: '/user/' + userData.userslug }, { text: '[[user:settings]]' }]);
+			userData.inTopicSearchAvailable = plugins.hasListeners('filter:topic.search');
 
-		res.render('account/settings', userData);
-	});
+			userData.maxTopicsPerPage = parseInt(meta.config.maxTopicsPerPage, 10) || 20;
+			userData.maxPostsPerPage = parseInt(meta.config.maxPostsPerPage, 10) || 20;
+
+			userData.title = '[[pages:account/settings]]';
+			userData.breadcrumbs = helpers.buildBreadcrumbs([{ text: userData.username, url: '/user/' + userData.userslug }, { text: '[[user:settings]]' }]);
+
+			res.render('account/settings', userData);
+		},
+	], callback);
 };
 
+function getNotificationSettings(userData, callback) {
+	var types = [
+		'notificationType_upvote',
+		'notificationType_new-topic',
+		'notificationType_new-reply',
+		'notificationType_follow',
+		'notificationType_new-chat',
+		'notificationType_group-invite',
+	];
+
+	var privilegedTypes = [];
+
+	async.waterfall([
+		function (next) {
+			user.getPrivileges(userData.uid, next);
+		},
+		function (privileges, next) {
+			if (privileges.isAdmin) {
+				privilegedTypes.push('notificationType_new-register');
+			}
+			if (privileges.isAdmin || privileges.isGlobalMod || privileges.isModeratorOfAnyCategory) {
+				privilegedTypes.push('notificationType_post-queue', 'notificationType_new-post-flag');
+			}
+			if (privileges.isAdmin || privileges.isGlobalMod) {
+				privilegedTypes.push('notificationType_new-user-flag');
+			}
+			plugins.fireHook('filter:user.notificationTypes', {
+				userData: userData,
+				types: types,
+				privilegedTypes: privilegedTypes,
+			}, next);
+		},
+		function (results, next) {
+			function modifyType(type) {
+				var setting = userData.settings[type] || 'notification';
+
+				return {
+					name: type,
+					label: '[[notifications:' + type + ']]',
+					none: setting === 'none',
+					notification: setting === 'notification',
+					email: setting === 'email',
+					notificationemail: setting === 'notificationemail',
+				};
+			}
+			var notificationSettings = results.types.map(modifyType).concat(results.privilegedTypes.map(modifyType));
+			next(null, notificationSettings);
+		},
+	], callback);
+}
 
 function getHomePageRoutes(userData, callback) {
 	async.waterfall([

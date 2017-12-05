@@ -14,9 +14,6 @@ categoriesController.list = function (req, res, next) {
 		name: 'title',
 		content: String(meta.config.title || 'NodeBB'),
 	}, {
-		property: 'og:title',
-		content: '[[pages:categories]]',
-	}, {
 		property: 'og:type',
 		content: 'website',
 	}];
@@ -40,8 +37,12 @@ categoriesController.list = function (req, res, next) {
 				categories: categoryData,
 			};
 
-			if (req.path.startsWith('/api/categories') || req.path.startsWith('/categories')) {
+			if (req.originalUrl.startsWith(nconf.get('relative_path') + '/api/categories') || req.originalUrl.startsWith(nconf.get('relative_path') + '/categories')) {
 				data.breadcrumbs = helpers.buildBreadcrumbs([{ text: data.title }]);
+				res.locals.metaTags.push({
+					property: 'og:title',
+					content: '[[pages:categories]]',
+				});
 			}
 
 			data.categories.forEach(function (category) {

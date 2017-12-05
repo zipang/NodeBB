@@ -2,7 +2,6 @@
 
 var async = require('async');
 var winston = require('winston');
-var S = require('string');
 
 var db = require('../database');
 var websockets = require('./index');
@@ -12,8 +11,9 @@ var topics = require('../topics');
 var privileges = require('../privileges');
 var notifications = require('../notifications');
 var plugins = require('../plugins');
+var utils = require('../utils');
 
-var SocketHelpers = {};
+var SocketHelpers = module.exports;
 
 SocketHelpers.notifyOnlineUsers = function (uid, result) {
 	winston.warn('[deprecated] SocketHelpers.notifyOnlineUsers, consider using socketHelpers.notifyNew(uid, \'newPost\', result);');
@@ -105,7 +105,7 @@ SocketHelpers.sendNotificationToPostOwner = function (pid, fromuid, command, not
 			}, next);
 		},
 		function (results, next) {
-			var title = S(results.topicTitle).decodeHTMLEntities().s;
+			var title = utils.decodeHTMLEntities(results.topicTitle);
 			var titleEscaped = title.replace(/%/g, '&#37;').replace(/,/g, '&#44;');
 
 			notifications.create({
@@ -151,7 +151,7 @@ SocketHelpers.sendNotificationToTopicOwner = function (tid, fromuid, command, no
 				return;
 			}
 			ownerUid = results.topicData.uid;
-			var title = S(results.topicData.title).decodeHTMLEntities().s;
+			var title = utils.decodeHTMLEntities(results.topicData.title);
 			var titleEscaped = title.replace(/%/g, '&#37;').replace(/,/g, '&#44;');
 
 			notifications.create({
@@ -167,6 +167,51 @@ SocketHelpers.sendNotificationToTopicOwner = function (tid, fromuid, command, no
 		}
 		if (notification && parseInt(ownerUid, 10)) {
 			notifications.push(notification, [ownerUid]);
+		}
+	});
+};
+
+SocketHelpers.upvote = function (data, notification) {
+	if (!data || !data.post || !data.post.uid || !data.post.votes || !data.post.pid || !data.fromuid) {
+		return;
+	}
+
+	var votes = data.post.votes;
+	var touid = data.post.uid;
+	var fromuid = data.fromuid;
+	var pid = data.post.pid;
+
+	var shouldNotify = {
+		all: function () {
+			return votes > 0;
+		},
+		everyTen: function () {
+			return votes > 0 && votes % 10 === 0;
+		},
+		logarithmic: function () {
+			return votes > 1 && Math.log10(votes) % 1 === 0;
+		},
+		disabled: function () {
+			return false;
+		},
+	};
+
+	async.waterfall([
+		function (next) {
+			user.getSettings(touid, next);
+		},
+		function (settings, next) {
+			var should = shouldNotify[settings.upvoteNotifFreq] || shouldNotify.all;
+
+			if (should()) {
+				SocketHelpers.sendNotificationToPostOwner(pid, fromuid, 'upvote', notification);
+			}
+
+			next();
+		},
+	], function (err) {
+		if (err) {
+			winston.error(err);
 		}
 	});
 };
@@ -199,5 +244,3 @@ SocketHelpers.emitToTopicAndCategory = function (event, data) {
 	websockets.in('topic_' + data.tid).emit(event, data);
 	websockets.in('category_' + data.cid).emit(event, data);
 };
-
-module.exports = SocketHelpers;

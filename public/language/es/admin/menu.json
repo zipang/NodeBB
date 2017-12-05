@@ -39,7 +39,7 @@
 	"section-appearance": "Apariencia",
 	"appearance/themes": "Temas",
 	"appearance/skins": "Pieles",
-	"appearance/customise": "HTML & CSS personalizado",
+	"appearance/customise": "Custom Content (HTML/JS/CSS)",
 
 	"section-extend": "Extender",
 	"extend/plugins": "Extensiones",
@@ -65,7 +65,7 @@
 	"logout": "Cerrar sesión",
 	"view-forum": "Ver foro",
 
-	"search.placeholder": "Buscar...",
+	"search.placeholder": "Search for settings",
 	"search.no-results": "Sin resultados...",
 	"search.search-forum": "Buscar en el foro <strong></strong>",
 	"search.keep-typing": "Escribe más para ver resultados...",

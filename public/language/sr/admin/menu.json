@@ -39,7 +39,7 @@
 	"section-appearance": "Izgled",
 	"appearance/themes": "Teme",
 	"appearance/skins": "Skins",
-	"appearance/customise": "Custom HTML & CSS",
+	"appearance/customise": "Custom Content (HTML/JS/CSS)",
 
 	"section-extend": "Proširiti",
 	"extend/plugins": "Plaginovi",
@@ -65,7 +65,7 @@
 	"logout": "Izloguj se",
 	"view-forum": "Pogledaj Forum",
 
-	"search.placeholder": "Pretraga...",
+	"search.placeholder": "Search for settings",
 	"search.no-results": "Nema rezultata...",
 	"search.search-forum": "Pretraži forum za <strong></strong>",
 	"search.keep-typing": "Ukucaj više da vidiš rezultate",

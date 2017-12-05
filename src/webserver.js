@@ -43,13 +43,13 @@ if (nconf.get('ssl')) {
 module.exports.server = server;
 
 server.on('error', function (err) {
-	winston.error(err);
 	if (err.code === 'EADDRINUSE') {
-		winston.error('NodeBB address in use, exiting...');
-		process.exit(1);
+		winston.error('NodeBB address in use, exiting...', err);
 	} else {
-		throw err;
+		winston.error(err);
 	}
+
+	throw err;
 });
 
 module.exports.listen = function (callback) {
@@ -105,7 +105,6 @@ function initializeNodeBB(callback) {
 		function (next) {
 			async.series([
 				meta.sounds.addUploads,
-				languages.init,
 				meta.blacklist.load,
 				flags.init,
 			], next);
@@ -253,7 +252,7 @@ function setupAutoLocale(app, callback) {
 
 function listen(callback) {
 	callback = callback || function () { };
-	var port = parseInt(nconf.get('port'), 10);
+	var port = nconf.get('port');
 	var isSocket = isNaN(port);
 	var socketPath = isSocket ? nconf.get('port') : '';
 
@@ -271,7 +270,7 @@ function listen(callback) {
 			process.exit();
 		}
 	}
-
+	port = parseInt(port, 10);
 	if ((port !== 80 && port !== 443) || nconf.get('trust_proxy') === true) {
 		winston.info('Enabling \'trust proxy\'');
 		app.enable('trust proxy');
@@ -302,13 +301,12 @@ function listen(callback) {
 	if (isSocket) {
 		oldUmask = process.umask('0000');
 		module.exports.testSocket(socketPath, function (err) {
-			if (!err) {
-				server.listen.apply(server, args);
-			} else {
-				winston.error('[startup] NodeBB was unable to secure domain socket access (' + socketPath + ')');
-				winston.error('[startup] ' + err.message);
-				process.exit();
+			if (err) {
+				winston.error('[startup] NodeBB was unable to secure domain socket access (' + socketPath + ')', err);
+				throw err;
 			}
+
+			server.listen.apply(server, args);
 		});
 	} else {
 		server.listen.apply(server, args);

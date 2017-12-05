@@ -6,5 +6,6 @@
 	"title": "Titre",
 	"content": "Contenu",
 	"posted": "Posté",
-	"reply-to": "Répondre à \"%1\""
+	"reply-to": "Répondre à \"%1\"",
+	"content-editable": "Vous pouvez cliquer sur le contenu pour le modifier avant de le poster."
 }

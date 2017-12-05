@@ -2,17 +2,13 @@
 'use strict';
 
 var async = require('async');
-var S = require('string');
-var winston = require('winston');
 
 var db = require('../database');
-var user = require('../user');
 var posts = require('../posts');
 var notifications = require('../notifications');
 var privileges = require('../privileges');
-var meta = require('../meta');
-var emailer = require('../emailer');
 var plugins = require('../plugins');
+var utils = require('../utils');
 
 module.exports = function (Topics) {
 	Topics.toggleFollow = function (tid, uid, callback) {
@@ -214,7 +210,7 @@ module.exports = function (Topics) {
 				title = postData.topic.title;
 
 				if (title) {
-					title = S(title).decodeHTMLEntities().s;
+					title = utils.decodeHTMLEntities(title);
 					titleEscaped = title.replace(/%/g, '&#37;').replace(/,/g, '&#44;');
 				}
 
@@ -239,36 +235,6 @@ module.exports = function (Topics) {
 					notifications.push(notification, followers);
 				}
 
-				if (parseInt(meta.config.disableEmailSubscriptions, 10) === 1) {
-					return next();
-				}
-
-				async.eachLimit(followers, 3, function (toUid, next) {
-					async.parallel({
-						userData: async.apply(user.getUserFields, toUid, ['username', 'userslug']),
-						userSettings: async.apply(user.getSettings, toUid),
-					}, function (err, data) {
-						if (err) {
-							return next(err);
-						}
-
-						if (data.userSettings.sendPostNotifications) {
-							emailer.send('notif_post', toUid, {
-								pid: postData.pid,
-								subject: '[' + (meta.config.title || 'NodeBB') + '] ' + title,
-								intro: '[[notifications:user_posted_to, ' + postData.user.username + ', ' + titleEscaped + ']]',
-								postBody: postData.content.replace(/"\/\//g, '"https://'),
-								username: data.userData.username,
-								userslug: data.userData.userslug,
-								topicSlug: postData.topic.slug,
-								showUnsubscribe: true,
-							}, next);
-						} else {
-							winston.debug('[topics.notifyFollowers] uid ' + toUid + ' does not have post notifications enabled, skipping.');
-							next();
-						}
-					});
-				});
 				next();
 			},
 		], callback);

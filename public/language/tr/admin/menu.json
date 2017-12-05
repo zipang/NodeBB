@@ -39,7 +39,7 @@
 	"section-appearance": "Görünüm",
 	"appearance/themes": "Temalar",
 	"appearance/skins": "Deriler",
-	"appearance/customise": "Özel HTML & CSS",
+	"appearance/customise": "Custom Content (HTML/JS/CSS)",
 
 	"section-extend": "Genişletme",
 	"extend/plugins": "Eklentiler",
@@ -65,7 +65,7 @@
 	"logout": "Çıkış",
 	"view-forum": "Forumu Görüntüle",
 
-	"search.placeholder": "Araştır...",
+	"search.placeholder": "Search for settings",
 	"search.no-results": "No results...",
 	"search.search-forum": "Search the forum for <strong></strong>",
 	"search.keep-typing": "Type more to see results...",

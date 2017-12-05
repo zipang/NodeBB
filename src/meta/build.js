@@ -83,6 +83,8 @@ var aliases = {
 	sounds: ['sound'],
 };
 
+exports.aliases = aliases;
+
 aliases = Object.keys(aliases).reduce(function (prev, key) {
 	var arr = aliases[key];
 	arr.forEach(function (alias) {
@@ -103,7 +105,7 @@ function beforeBuild(targets, callback) {
 		async.apply(plugins.prepareForBuild, targets),
 	], function (err) {
 		if (err) {
-			winston.error('[build] Encountered error preparing for build: ' + err.message);
+			winston.error('[build] Encountered error preparing for build', err);
 			return callback(err);
 		}
 
@@ -203,7 +205,7 @@ function build(targets, callback) {
 		},
 	], function (err) {
 		if (err) {
-			winston.error('[build] Encountered error during build step: ' + err.message);
+			winston.error('[build] Encountered error during build step', err);
 			return callback(err);
 		}
 

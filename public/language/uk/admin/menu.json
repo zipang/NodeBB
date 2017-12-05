@@ -39,7 +39,7 @@
 	"section-appearance": "Зовнішній вигляд",
 	"appearance/themes": "Теми",
 	"appearance/skins": "Стилі",
-	"appearance/customise": "Користувацькі HTML та CSS",
+	"appearance/customise": "Custom Content (HTML/JS/CSS)",
 
 	"section-extend": "Розширити",
 	"extend/plugins": "Плагіни",
@@ -65,7 +65,7 @@
 	"logout": "Вийти",
 	"view-forum": "Переглянути форум",
 
-	"search.placeholder": "Пошук...",
+	"search.placeholder": "Search for settings",
 	"search.no-results": "Без результатів...",
 	"search.search-forum": "Шукати на форумі <strong></strong>",
 	"search.keep-typing": "Для результатів, надрукуйте ще...",

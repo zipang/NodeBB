@@ -7,7 +7,8 @@ module.exports = function (app, middleware, controllers) {
 	var middlewares = [middleware.checkGlobalPrivacySettings];
 	var accountMiddlewares = [middleware.checkGlobalPrivacySettings, middleware.checkAccountPermissions];
 
-	setupPageRoute(app, '/uid/:uid/:section1?/:section2?', middleware, [], middleware.redirectUidToUserslug);
+	setupPageRoute(app, '/me/*', middleware, [], middleware.redirectMeToUserslug);
+	setupPageRoute(app, '/uid/:uid*', middleware, [], middleware.redirectUidToUserslug);
 
 	setupPageRoute(app, '/user/:userslug', middleware, middlewares, controllers.accounts.profile.get);
 	setupPageRoute(app, '/user/:userslug/following', middleware, middlewares, controllers.accounts.follow.getFollowing);
@@ -19,6 +20,7 @@ module.exports = function (app, middleware, controllers) {
 
 	setupPageRoute(app, '/user/:userslug/bookmarks', middleware, accountMiddlewares, controllers.accounts.posts.getBookmarks);
 	setupPageRoute(app, '/user/:userslug/watched', middleware, accountMiddlewares, controllers.accounts.posts.getWatchedTopics);
+	setupPageRoute(app, '/user/:userslug/ignored', middleware, accountMiddlewares, controllers.accounts.posts.getIgnoredTopics);
 	setupPageRoute(app, '/user/:userslug/upvoted', middleware, accountMiddlewares, controllers.accounts.posts.getUpVotedPosts);
 	setupPageRoute(app, '/user/:userslug/downvoted', middleware, accountMiddlewares, controllers.accounts.posts.getDownVotedPosts);
 	setupPageRoute(app, '/user/:userslug/edit', middleware, accountMiddlewares, controllers.accounts.edit.get);

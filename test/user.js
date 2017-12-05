@@ -10,7 +10,6 @@ var db = require('./mocks/databasemock');
 var User = require('../src/user');
 var Topics = require('../src/topics');
 var Categories = require('../src/categories');
-var Meta = require('../src/meta');
 var Password = require('../src/password');
 var groups = require('../src/groups');
 var helpers = require('./helpers');
@@ -202,8 +201,8 @@ describe('User', function () {
 
 	describe('.isReadyToPost()', function () {
 		it('should error when a user makes two posts in quick succession', function (done) {
-			Meta.config = Meta.config || {};
-			Meta.config.postDelay = '10';
+			meta.config = meta.config || {};
+			meta.config.postDelay = '10';
 
 			async.series([
 				async.apply(Topics.post, {
@@ -239,8 +238,8 @@ describe('User', function () {
 		});
 
 		it('should error when a new user posts if the last post time is 10 < 30 seconds', function (done) {
-			Meta.config.newbiePostDelay = 30;
-			Meta.config.newbiePostDelayThreshold = 3;
+			meta.config.newbiePostDelay = 30;
+			meta.config.newbiePostDelayThreshold = 3;
 
 			User.setUserField(testUid, 'lastposttime', +new Date() - (20 * 1000), function () {
 				Topics.post({
@@ -292,10 +291,10 @@ describe('User', function () {
 		});
 
 		it('should error for guest', function (done) {
-			Meta.config.allowGuestUserSearching = 0;
+			meta.config.allowGuestUserSearching = 0;
 			socketUser.search({ uid: 0 }, { query: 'john' }, function (err) {
 				assert.equal(err.message, '[[error:not-logged-in]]');
-				Meta.config.allowGuestUserSearching = 1;
+				meta.config.allowGuestUserSearching = 1;
 				done();
 			});
 		});
@@ -491,9 +490,45 @@ describe('User', function () {
 		it('should get user data even if one uid is NaN', function (done) {
 			User.getUsersData([NaN, testUid], function (err, data) {
 				assert.ifError(err);
-				assert.equal(data[0], null);
+				assert(data[0]);
+				assert.equal(data[0].username, '[[global:guest]]');
 				assert(data[1]);
 				assert.equal(data[1].username, userData.username);
+				done();
+			});
+		});
+
+		it('should not return private user data', function (done) {
+			User.setUserFields(testUid, {
+				fb_token: '123123123',
+				another_secret: 'abcde',
+				postcount: '123',
+			}, function (err) {
+				assert.ifError(err);
+				User.getUserData(testUid, function (err, userData) {
+					assert.ifError(err);
+					assert(!userData.hasOwnProperty('fb_token'));
+					assert(!userData.hasOwnProperty('another_secret'));
+					assert(!userData.hasOwnProperty('password'));
+					assert(!userData.hasOwnProperty('rss_token'));
+					assert.equal(userData.postcount, '123');
+					done();
+				});
+			});
+		});
+
+		it('should return private data if field is whitelisted', function (done) {
+			function filterMethod(data, callback) {
+				data.whitelist.push('another_secret');
+				callback(null, data);
+			}
+
+			plugins.registerHook('test-plugin', { hook: 'filter:user.whitelistFields', method: filterMethod });
+			User.getUserData(testUid, function (err, userData) {
+				assert.ifError(err);
+				assert(!userData.hasOwnProperty('fb_token'));
+				assert.equal(userData.another_secret, 'abcde');
+				plugins.unregisterHook('test-plugin', 'filter:user.whitelistFields', filterMethod);
 				done();
 			});
 		});
@@ -587,6 +622,18 @@ describe('User', function () {
 				db.getObjectField('user:' + uid, 'username', function (err, username) {
 					assert.ifError(err);
 					assert.equal(username, 'updatedAgain');
+					done();
+				});
+			});
+		});
+
+		it('should not update a user\'s username if it did not change', function (done) {
+			socketUser.changeUsernameEmail({ uid: uid }, { uid: uid, username: 'updatedAgain', password: '123456' }, function (err) {
+				assert.ifError(err);
+				db.getSortedSetRevRange('user:' + uid + ':usernames', 0, -1, function (err, data) {
+					assert.ifError(err);
+					assert(data[0].startsWith('updatedAgain'));
+					assert(data[1].startsWith('updatedUserName'));
 					done();
 				});
 			});
@@ -763,7 +810,7 @@ describe('User', function () {
 				name: 'test',
 			};
 			User.uploadPicture(uid, picture, function (err) {
-				assert.equal(err.message, '[[error:invalid-image-extension]]');
+				assert.equal(err.message, '[[error:invalid-image]]');
 				done();
 			});
 		});
@@ -1034,6 +1081,87 @@ describe('User', function () {
 		});
 	});
 
+	describe('Digest.getSubscribers', function (done) {
+		var uidIndex = {};
+
+		before(function (done) {
+			var testUsers = ['daysub', 'offsub', 'nullsub', 'weeksub'];
+			async.each(testUsers, function (username, next) {
+				async.waterfall([
+					async.apply(User.create, { username: username, email: username + '@example.com' }),
+					function (uid, next) {
+						if (username === 'nullsub') {
+							return setImmediate(next);
+						}
+
+						uidIndex[username] = uid;
+
+						var sub = username.slice(0, -3);
+						async.parallel([
+							async.apply(User.updateDigestSetting, uid, sub),
+							async.apply(User.setSetting, uid, 'dailyDigestFreq', sub),
+						], next);
+					},
+				], next);
+			}, done);
+		});
+
+		it('should accurately build digest list given ACP default "null" (not set)', function (done) {
+			User.digest.getSubscribers('day', function (err, subs) {
+				assert.ifError(err);
+				assert.strictEqual(subs.length, 1);
+
+				done();
+			});
+		});
+
+		it('should accurately build digest list given ACP default "day"', function (done) {
+			async.series([
+				async.apply(meta.configs.set, 'dailyDigestFreq', 'day'),
+				function (next) {
+					User.digest.getSubscribers('day', function (err, subs) {
+						assert.ifError(err);
+						assert.strictEqual(subs.includes(uidIndex.daysub.toString()), true);	// daysub does get emailed
+						assert.strictEqual(subs.includes(uidIndex.weeksub.toString()), false);	// weeksub does not get emailed
+						assert.strictEqual(subs.includes(uidIndex.offsub.toString()), false);	// offsub doesn't get emailed
+
+						next();
+					});
+				},
+			], done);
+		});
+
+		it('should accurately build digest list given ACP default "week"', function (done) {
+			async.series([
+				async.apply(meta.configs.set, 'dailyDigestFreq', 'week'),
+				function (next) {
+					User.digest.getSubscribers('week', function (err, subs) {
+						assert.ifError(err);
+						assert.strictEqual(subs.includes(uidIndex.weeksub.toString()), true);	// weeksub gets emailed
+						assert.strictEqual(subs.includes(uidIndex.daysub.toString()), false);	// daysub gets emailed
+						assert.strictEqual(subs.includes(uidIndex.offsub.toString()), false);	// offsub does not get emailed
+
+						next();
+					});
+				},
+			], done);
+		});
+
+		it('should accurately build digest list given ACP default "off"', function (done) {
+			async.series([
+				async.apply(meta.configs.set, 'dailyDigestFreq', 'off'),
+				function (next) {
+					User.digest.getSubscribers('day', function (err, subs) {
+						assert.ifError(err);
+						assert.strictEqual(subs.length, 1);
+
+						next();
+					});
+				},
+			], done);
+		});
+	});
+
 	describe('digests', function () {
 		var uid;
 		before(function (done) {
@@ -1145,10 +1273,10 @@ describe('User', function () {
 		});
 
 		it('should send email confirm', function (done) {
-			Meta.config.requireEmailConfirmation = 1;
+			meta.config.requireEmailConfirmation = 1;
 			socketUser.emailConfirm({ uid: testUid }, {}, function (err) {
 				assert.ifError(err);
-				Meta.config.requireEmailConfirmation = 0;
+				meta.config.requireEmailConfirmation = 0;
 				done();
 			});
 		});
@@ -1258,8 +1386,8 @@ describe('User', function () {
 		var oldRegistrationType;
 		var adminUid;
 		before(function (done) {
-			oldRegistrationType = Meta.config.registrationType;
-			Meta.config.registrationType = 'admin-approval';
+			oldRegistrationType = meta.config.registrationType;
+			meta.config.registrationType = 'admin-approval';
 			User.create({ username: 'admin', password: '123456' }, function (err, uid) {
 				assert.ifError(err);
 				adminUid = uid;
@@ -1268,7 +1396,7 @@ describe('User', function () {
 		});
 
 		after(function (done) {
-			Meta.config.registrationType = oldRegistrationType;
+			meta.config.registrationType = oldRegistrationType;
 			done();
 		});
 

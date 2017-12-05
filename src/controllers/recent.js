@@ -3,7 +3,7 @@
 
 var async = require('async');
 var nconf = require('nconf');
-var validator = require('validator');
+var querystring = require('querystring');
 
 var user = require('../user');
 var topics = require('../topics');
@@ -13,8 +13,6 @@ var pagination = require('../pagination');
 
 var recentController = module.exports;
 
-var validFilter = { '': true, new: true, watched: true };
-
 recentController.get = function (req, res, next) {
 	var page = parseInt(req.query.page, 10) || 1;
 	var stop = 0;
@@ -23,7 +21,8 @@ recentController.get = function (req, res, next) {
 	var filter = req.params.filter || '';
 	var categoryData;
 	var rssToken;
-	if (!validFilter[filter]) {
+
+	if (!helpers.validFilters[filter]) {
 		return next();
 	}
 
@@ -54,6 +53,7 @@ recentController.get = function (req, res, next) {
 		function (data) {
 			data.categories = categoryData.categories;
 			data.selectedCategory = categoryData.selectedCategory;
+			data.selectedCids = categoryData.selectedCids;
 			data.nextStart = stop + 1;
 			data.set = 'topics:recent';
 			data['feeds:disableRSS'] = parseInt(meta.config['feeds:disableRSS'], 10) === 1;
@@ -62,22 +62,7 @@ recentController.get = function (req, res, next) {
 				data.rssFeedUrl += '?uid=' + req.uid + '&token=' + rssToken;
 			}
 			data.title = '[[pages:recent]]';
-			data.filters = [{
-				name: '[[unread:all-topics]]',
-				url: 'recent',
-				selected: filter === '',
-				filter: '',
-			}, {
-				name: '[[unread:new-topics]]',
-				url: 'recent/new',
-				selected: filter === 'new',
-				filter: 'new',
-			}, {
-				name: '[[unread:watched-topics]]',
-				url: 'recent/watched',
-				selected: filter === 'watched',
-				filter: 'watched',
-			}];
+			data.filters = helpers.buildFilters('recent', filter);
 
 			data.selectedFilter = data.filters.find(function (filter) {
 				return filter && filter.selected;
@@ -86,11 +71,12 @@ recentController.get = function (req, res, next) {
 			var pageCount = Math.max(1, Math.ceil(data.topicCount / settings.topicsPerPage));
 			data.pagination = pagination.create(page, pageCount, req.query);
 
-			if (req.path.startsWith('/api/recent') || req.path.startsWith('/recent')) {
+			if (req.originalUrl.startsWith(nconf.get('relative_path') + '/api/recent') || req.originalUrl.startsWith(nconf.get('relative_path') + '/recent')) {
 				data.breadcrumbs = helpers.buildBreadcrumbs([{ text: '[[recent:title]]' }]);
 			}
 
-			data.querystring = cid ? ('?cid=' + validator.escape(String(cid))) : '';
+			data.querystring = cid ? '?' + querystring.stringify({ cid: cid }) : '';
+
 			res.render('recent', data);
 		},
 	], next);

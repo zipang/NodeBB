@@ -6,5 +6,6 @@
 	"title": "Titel",
 	"content": "Inhalt",
 	"posted": "Gepostet",
-	"reply-to": "Auf \"%1\" antworten"
+	"reply-to": "Auf \"%1\" antworten",
+	"content-editable": "Du kannst auf den einzelnen Inhalt klicken um ihn zu ändern bevor du ihn postest."
 }
