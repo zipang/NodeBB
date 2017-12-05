@@ -18,7 +18,12 @@ module.exports = {
 					}
 					progress.incr();
 
+					if (typeof topicData.lastposttime === "string") {
+						topicData.lastposttime = topicData.timestamp;
+					}
+
 					var timestamp = topicData.lastposttime || topicData.timestamp || Date.now();
+					console.log('cid:' + topicData.cid + ':tids:lastposttime', topicData.lastposttime, topicData.timestamp, tid);
 					db.sortedSetAdd('cid:' + topicData.cid + ':tids:lastposttime', timestamp, tid, next);
 				}, next);
 			}, next);
