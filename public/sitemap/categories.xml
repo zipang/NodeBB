@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:news="http://www.google.com/schemas/sitemap-news/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns:mobile="http://www.google.com/schemas/sitemap-mobile/1.0" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1" xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">
+<url> <loc>https://forum.mathforu.com/category/1/annonces</loc> <changefreq>weekly</changefreq> <priority>0.4</priority> </url>
+<url> <loc>https://forum.mathforu.com/category/21/calculatrices</loc> <changefreq>weekly</changefreq> <priority>0.4</priority> </url>
+<url> <loc>https://forum.mathforu.com/category/26/latex</loc> <changefreq>weekly</changefreq> <priority>0.4</priority> </url>
+<url> <loc>https://forum.mathforu.com/category/22/orientation-pédagogie</loc> <changefreq>weekly</changefreq> <priority>0.4</priority> </url>
+<url> <loc>https://forum.mathforu.com/category/2/terminale-s</loc> <changefreq>weekly</changefreq> <priority>0.4</priority> </url>
+<url> <loc>https://forum.mathforu.com/category/3/terminale-es</loc> <changefreq>weekly</changefreq> <priority>0.4</priority> </url>
+<url> <loc>https://forum.mathforu.com/category/4/terminale-autre</loc> <changefreq>weekly</changefreq> <priority>0.4</priority> </url>
+<url> <loc>https://forum.mathforu.com/category/5/1ère-s</loc> <changefreq>weekly</changefreq> <priority>0.4</priority> </url>
+<url> <loc>https://forum.mathforu.com/category/6/1ère-es</loc> <changefreq>weekly</changefreq> <priority>0.4</priority> </url>
+<url> <loc>https://forum.mathforu.com/category/7/1ère-autre</loc> <changefreq>weekly</changefreq> <priority>0.4</priority> </url>
+<url> <loc>https://forum.mathforu.com/category/8/seconde</loc> <changefreq>weekly</changefreq> <priority>0.4</priority> </url>
+<url> <loc>https://forum.mathforu.com/category/9/3ème</loc> <changefreq>weekly</changefreq> <priority>0.4</priority> </url>
+<url> <loc>https://forum.mathforu.com/category/10/4ème</loc> <changefreq>weekly</changefreq> <priority>0.4</priority> </url>
+<url> <loc>https://forum.mathforu.com/category/11/5ème-6ème</loc> <changefreq>weekly</changefreq> <priority>0.4</priority> </url>
+<url> <loc>https://forum.mathforu.com/category/29/supérieur</loc> <changefreq>weekly</changefreq> <priority>0.4</priority> </url>
+<url> <loc>https://forum.mathforu.com/category/12/autres-classes</loc> <changefreq>weekly</changefreq> <priority>0.4</priority> </url>
+<url> <loc>https://forum.mathforu.com/category/13/enigmes-curiosités</loc> <changefreq>weekly</changefreq> <priority>0.4</priority> </url>
+<url> <loc>https://forum.mathforu.com/category/100/math-outils</loc> <changefreq>weekly</changefreq> <priority>0.4</priority> </url>
+<url> <loc>https://forum.mathforu.com/category/110/vie-du-site-et-de-ses-membres</loc> <changefreq>weekly</changefreq> <priority>0.4</priority> </url>
+</urlset>
