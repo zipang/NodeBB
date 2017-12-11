@@ -48,10 +48,11 @@ categoriesController.list = function (req, res, next) {
 
 			data.categories.forEach(function (category) {
 				if (category && Array.isArray(category.posts) && category.posts.length) {
+					var latestPost = category.posts[category.posts.length-1];
 					category.teaser = {
-						url: nconf.get('relative_path') + '/post/' + category.posts[0].pid,
-						timestampISO: category.posts[0].timestampISO,
-						pid: category.posts[0].pid,
+						url: nconf.get('relative_path') + '/post/' + latestPost.pid,
+						timestampISO: latestPost.timestampISO,
+						pid: latestPost.pid,
 					};
 				}
 			});
