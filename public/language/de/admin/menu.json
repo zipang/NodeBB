@@ -9,8 +9,10 @@
 
 	"section-manage": "Verwalten",
 	"manage/categories": "Kategorien",
+	"manage/privileges": "Privilegien",
 	"manage/tags": "Tags",
 	"manage/users": "Benutzer",
+	"manage/admins-mods": "Admins & Mods",
 	"manage/registration": "Warteliste",
 	"manage/post-queue": "Beitragswarteschlange",
 	"manage/groups": "Gruppen",
@@ -39,7 +41,7 @@
 	"section-appearance": "Aussehen",
 	"appearance/themes": "Themes",
 	"appearance/skins": "Skins",
-	"appearance/customise": "Custom Content (HTML/JS/CSS)",
+	"appearance/customise": "Benutzerdefinierter Inhalt (HTML/JS/CSS)",
 
 	"section-extend": "Erweitert",
 	"extend/plugins": "Plugins",

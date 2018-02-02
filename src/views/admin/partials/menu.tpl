@@ -15,7 +15,9 @@
 		<h3 class="menu-section-title">[[admin/menu:section-manage]]</h3>
 		<ul class="menu-section-list">
 			<li><a href="{relative_path}/admin/manage/categories">[[admin/menu:manage/categories]]</a></li>
+			<li><a href="{relative_path}/admin/manage/privileges">[[admin/menu:manage/privileges]]</a></li>
 			<li><a href="{relative_path}/admin/manage/users">[[admin/menu:manage/users]]</a></li>
+			<li><a href="{relative_path}/admin/manage/admins-mods">[[admin/menu:manage/admins-mods]]</a></li>
 			<li><a href="{relative_path}/admin/manage/groups">[[admin/menu:manage/groups]]</a></li>
 			<li><a href="{relative_path}/admin/manage/tags">[[admin/menu:manage/tags]]</a></li>
 			<li><a href="{relative_path}/admin/manage/registration">[[admin/menu:manage/registration]]</a></li>
@@ -188,7 +190,9 @@
 				<a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">[[admin/menu:section-manage]]</a>
 				<ul class="dropdown-menu" role="menu">
 					<li><a href="{relative_path}/admin/manage/categories">[[admin/menu:manage/categories]]</a></li>
+					<li><a href="{relative_path}/admin/manage/privileges">[[admin/menu:manage/privileges]]</a></li>
 					<li><a href="{relative_path}/admin/manage/users">[[admin/menu:manage/users]]</a></li>
+					<li><a href="{relative_path}/admin/manage/admins-mods">[[admin/menu:manage/admins-mods]]</a></li>
 					<li><a href="{relative_path}/admin/manage/groups">[[admin/menu:manage/groups]]</a></li>
 					<li><a href="{relative_path}/admin/manage/tags">[[admin/menu:manage/tags]]</a></li>
 					<li><a href="{relative_path}/admin/manage/registration">[[admin/menu:manage/registration]]</a></li>
@@ -197,7 +201,7 @@
 				</ul>
 			</li>
 			<li class="dropdown menu-item">
-				<a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">[[admin/menu:section-settings]]</a>
+				<a id="settings-menu" href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">[[admin/menu:section-settings]]</a>
 				<ul class="dropdown-menu" role="menu">
 					<li><a href="{relative_path}/admin/settings/general">[[admin/menu:section-general]]</a></li>
 					<li><a href="{relative_path}/admin/settings/user">[[admin/menu:settings/user]]</a></li>
