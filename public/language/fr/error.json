@@ -64,7 +64,7 @@
     "cant-delete-topic-has-replies": "Vous ne pouvez pas supprimer votre sujet s'il a au moins %1 réponses.",
     "content-too-short": "Veuillez entrer un message plus long. %1 caractère(s) minimum.",
     "content-too-long": "Veuillez poster un message plus cours. Les messages ne peuvent être plus long que %1 caractère(s).",
-    "title-too-short": "Veuillez entrer un titre plus long. %1 caractère(s) minimum.",
+    "title-too-short": "Veuillez entrer un titre plus long  (%1 caractère(s) minimum) et décrivant bien le problème mathématique qui vous concerne.",
     "title-too-long": "Veuillez entrer un titre plus court. Les titres ne peuvent excéder %1 caractère(s).",
     "category-not-selected": "Aucune catégorie sélectionnée",
     "too-many-posts": "Vous ne pouvez poster que toutes les %1 seconde(s).",
