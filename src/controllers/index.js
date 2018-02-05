@@ -11,6 +11,7 @@ var helpers = require('./helpers');
 
 var Controllers = module.exports;
 
+Controllers.ping = require('./ping');
 Controllers.home = require('./home');
 Controllers.topics = require('./topics');
 Controllers.posts = require('./posts');
@@ -19,6 +20,7 @@ Controllers.category = require('./category');
 Controllers.unread = require('./unread');
 Controllers.recent = require('./recent');
 Controllers.popular = require('./popular');
+Controllers.top = require('./top');
 Controllers.tags = require('./tags');
 Controllers.search = require('./search');
 Controllers.user = require('./user');

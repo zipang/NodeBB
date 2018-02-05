@@ -117,10 +117,9 @@ define('notifications', ['sounds', 'translator', 'components', 'navigator', 'ben
 	function scrollToPostIndexIfOnPage(notifEl) {
 		// Scroll to index if already in topic (gh#5873)
 		var pid = notifEl.attr('data-pid');
-		var tid = notifEl.attr('data-tid');
 		var path = notifEl.attr('data-path');
 		var postEl = components.get('post', 'pid', pid);
-		if (path.startsWith(config.relative_path + '/post/') && pid && postEl.length && ajaxify.data.template.topic && parseInt(ajaxify.data.tid, 10) === parseInt(tid, 10)) {
+		if (path.startsWith(config.relative_path + '/post/') && pid && postEl.length && ajaxify.data.template.topic) {
 			navigator.scrollToIndex(postEl.attr('data-index'), true);
 			return true;
 		}
@@ -137,14 +136,14 @@ define('notifications', ['sounds', 'translator', 'components', 'navigator', 'ben
 				return parseInt(a.datetime, 10) > parseInt(b.datetime, 10) ? -1 : 1;
 			});
 
-			translator.toggleTimeagoShorthand();
-			for (var i = 0; i < notifs.length; i += 1) {
-				notifs[i].timeago = $.timeago(new Date(parseInt(notifs[i].datetime, 10)));
-			}
-			translator.toggleTimeagoShorthand();
-
-			Benchpress.parse('partials/notifications_list', { notifications: notifs }, function (html) {
-				notifList.translateHtml(html);
+			translator.toggleTimeagoShorthand(function () {
+				for (var i = 0; i < notifs.length; i += 1) {
+					notifs[i].timeago = $.timeago(new Date(parseInt(notifs[i].datetime, 10)));
+				}
+				translator.toggleTimeagoShorthand();
+				Benchpress.parse('partials/notifications_list', { notifications: notifs }, function (html) {
+					notifList.translateHtml(html);
+				});
 			});
 		});
 	};

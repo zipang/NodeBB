@@ -3,37 +3,59 @@
 var fs = require('fs');
 var path = require('path');
 
-var packageInstall = require('../meta/package-install');
+var packageInstall = require('./package-install');
 var dirname = require('./paths').baseDir;
 
 // check to make sure dependencies are installed
 try {
-	fs.readFileSync(path.join(dirname, 'package.json'));
+	fs.accessSync(path.join(dirname, 'package.json'), fs.constants.R_OK);
 } catch (e) {
 	if (e.code === 'ENOENT') {
 		console.warn('package.json not found.');
-		console.log('Populating package.json...\n');
+		console.log('Populating package.json...');
 
 		packageInstall.updatePackageFile();
 		packageInstall.preserveExtraneousPlugins();
 
-		console.log('OK'.green + '\n'.reset);
+		try {
+			fs.accessSync(path.join(dirname, 'node_modules/colors/package.json'), fs.constants.R_OK);
+
+			require('colors');
+			console.log('OK'.green);
+		} catch (e) {
+			console.log('OK');
+		}
 	} else {
 		throw e;
 	}
 }
 
 try {
-	fs.readFileSync(path.join(dirname, 'node_modules/async/package.json'), 'utf8');
-	fs.readFileSync(path.join(dirname, 'node_modules/commander/package.json'), 'utf8');
-	fs.readFileSync(path.join(dirname, 'node_modules/colors/package.json'), 'utf8');
-	fs.readFileSync(path.join(dirname, 'node_modules/nconf/package.json'), 'utf8');
+	fs.accessSync(path.join(dirname, 'node_modules/semver/package.json'), fs.constants.R_OK);
+
+	var semver = require('semver');
+	var defaultPackage = require('../../install/package.json');
+
+	var checkVersion = function (packageName) {
+		var version = JSON.parse(fs.readFileSync(path.join(dirname, 'node_modules', packageName, 'package.json'), 'utf8')).version;
+		if (!semver.satisfies(version, defaultPackage.dependencies[packageName])) {
+			var e = new TypeError('Incorrect dependency version: ' + packageName);
+			e.code = 'DEP_WRONG_VERSION';
+			throw e;
+		}
+	};
+
+	checkVersion('nconf');
+	checkVersion('async');
+	checkVersion('commander');
+	checkVersion('colors');
 } catch (e) {
-	if (e.code === 'ENOENT') {
-		console.warn('Dependencies not yet installed.');
+	if (['ENOENT', 'DEP_WRONG_VERSION', 'MODULE_NOT_FOUND'].indexOf(e.code) !== -1) {
+		console.warn('Dependencies outdated or not yet installed.');
 		console.log('Installing them now...\n');
 
-		packageInstall.npmInstallProduction();
+		packageInstall.updatePackageFile();
+		packageInstall.installAll();
 
 		require('colors');
 		console.log('OK'.green + '\n'.reset);
@@ -236,7 +258,7 @@ program
 			'When running particular upgrade scripts, options are ignored.',
 			'By default all options are enabled. Passing any options disables that default.',
 			'Only package and dependency updates: ' + './nodebb upgrade -mi'.yellow,
-			'Only database update: ' + './nodebb upgrade -d'.yellow,
+			'Only database update: ' + './nodebb upgrade -s'.yellow,
 		].join('\n'));
 	})
 	.action(function (scripts, options) {
@@ -275,15 +297,11 @@ program
 		}
 	});
 
-program
-	.command('*', {}, {
-		noHelp: true,
-	})
-	.action(function () {
-		program.help();
-	});
-
 require('./colors');
+
+if (process.argv.length === 2) {
+	program.help();
+}
 
 program.executables = false;
 

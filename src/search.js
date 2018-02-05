@@ -42,7 +42,7 @@ function searchInContent(data, callback) {
 	var matchCount = 0;
 	var pids;
 	var metadata;
-
+	var itemsPerPage = data.itemsPerPage || 10;
 	async.waterfall([
 		function (next) {
 			async.parallel({
@@ -99,8 +99,8 @@ function searchInContent(data, callback) {
 			matchCount = metadata.pids.length;
 
 			if (data.page) {
-				var start = Math.max(0, (data.page - 1)) * 10;
-				metadata.pids = metadata.pids.slice(start, start + 10);
+				var start = Math.max(0, (data.page - 1)) * itemsPerPage;
+				metadata.pids = metadata.pids.slice(start, start + itemsPerPage);
 			}
 
 			posts.getPostSummaryByPids(metadata.pids, data.uid, {}, next);
@@ -108,7 +108,11 @@ function searchInContent(data, callback) {
 		function (posts, next) {
 			// Append metadata to returned payload (without pids)
 			delete metadata.pids;
-			next(null, Object.assign({ posts: posts, matchCount: matchCount, pageCount: Math.max(1, Math.ceil(parseInt(matchCount, 10) / 10)) }, metadata));
+			next(null, Object.assign({
+				posts: posts,
+				matchCount: matchCount,
+				pageCount: Math.max(1, Math.ceil(parseInt(matchCount, 10) / 10)),
+			}, metadata));
 		},
 	], callback);
 }
@@ -209,7 +213,7 @@ function getMatchedPosts(pids, data, callback) {
 									db.getObjectsFields(cids, categoryFields, next);
 								},
 								tags: function (next) {
-									if (data.hasTags && data.hasTags.length) {
+									if (Array.isArray(data.hasTags) && data.hasTags.length) {
 										var tids = posts.map(function (post) {
 											return post && post.tid;
 										});
@@ -299,10 +303,10 @@ function filterByTimerange(posts, timeRange, timeFilter) {
 }
 
 function filterByTags(posts, hasTags) {
-	if (hasTags && hasTags.length) {
+	if (Array.isArray(hasTags) && hasTags.length) {
 		posts = posts.filter(function (post) {
 			var hasAllTags = false;
-			if (post && post.topic && post.topic.tags && post.topic.tags.length) {
+			if (post && post.topic && Array.isArray(post.topic.tags) && post.topic.tags.length) {
 				hasAllTags = hasTags.every(function (tag) {
 					return post.topic.tags.indexOf(tag) !== -1;
 				});

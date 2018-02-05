@@ -148,7 +148,7 @@ module.exports = function (middleware) {
 			},
 			function (userslug) {
 				if (!userslug) {
-					return res.status(401).send('not-authorized');
+					return controllers.helpers.notAllowed(req, res);
 				}
 				var path = req.path.replace(/^(\/api)?\/me/, '/user/' + userslug);
 				controllers.helpers.redirect(res, path);
@@ -177,7 +177,7 @@ module.exports = function (middleware) {
 				var disabled = parseInt(meta.config.adminReloginDuration, 10) === 0;
 				if (disabled || (loginTime && parseInt(loginTime, 10) > Date.now() - adminReloginDuration)) {
 					var timeLeft = parseInt(loginTime, 10) - (Date.now() - adminReloginDuration);
-					if (timeLeft < Math.min(300000, adminReloginDuration)) {
+					if (req.session.meta && timeLeft < Math.min(300000, adminReloginDuration)) {
 						req.session.meta.datetime += Math.min(300000, adminReloginDuration);
 					}
 

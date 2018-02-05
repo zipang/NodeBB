@@ -3,7 +3,7 @@
 var async = require('async');
 var nconf = require('nconf');
 
-var packageInstall = require('../meta/package-install');
+var packageInstall = require('./package-install');
 var upgrade = require('../upgrade');
 var build = require('../meta/build');
 var db = require('../database');
@@ -16,13 +16,15 @@ var steps = {
 		handler: function (next) {
 			packageInstall.updatePackageFile();
 			packageInstall.preserveExtraneousPlugins();
+			process.stdout.write('  OK\n'.green);
 			next();
 		},
 	},
 	install: {
 		message: 'Bringing base dependencies up to date...',
 		handler: function (next) {
-			packageInstall.npmInstallProduction();
+			process.stdout.write('  started\n'.green);
+			packageInstall.installAll();
 			next();
 		},
 	},
@@ -53,10 +55,9 @@ var steps = {
 function runSteps(tasks) {
 	tasks = tasks.map(function (key, i) {
 		return function (next) {
-			console.log(((i + 1) + '. ').bold + steps[key].message.yellow);
+			process.stdout.write('\n' + ((i + 1) + '. ').bold + steps[key].message.yellow);
 			return steps[key].handler(function (err) {
 				if (err) { return next(err); }
-				console.log('  OK'.green);
 				next();
 			});
 		};
@@ -73,7 +74,7 @@ function runSteps(tasks) {
 		var columns = process.stdout.columns;
 		var spaces = columns ? new Array(Math.floor(columns / 2) - (message.length / 2) + 1).join(' ') : '  ';
 
-		console.log('\n' + spaces + message.green.bold + '\n'.reset);
+		console.log('\n\n' + spaces + message.green.bold + '\n'.reset);
 
 		process.exit();
 	});
@@ -81,7 +82,7 @@ function runSteps(tasks) {
 
 function runUpgrade(upgrades, options) {
 	console.log('\nUpdating NodeBB...'.cyan);
-
+	options = options || {};
 	// disable mongo timeouts during upgrade
 	nconf.set('mongo:options:socketTimeoutMS', 0);
 
