@@ -32,7 +32,8 @@ postsController.redirectToPost = function (req, res, next) {
 			if (!results.canRead) {
 				return helpers.notAllowed(req, res);
 			}
-			helpers.redirect(res, results.path);
+			console.log("Permanent redirect to " + results.path);
+			res.redirect(301, nconf.get('relative_path') + encodeURI(results.path));
 		},
 	], next);
 };
