@@ -58,14 +58,14 @@ topicsController.get = function (req, res, callback) {
 			}
 
 			if (!res.locals.isAPI && (!req.params.slug || results.topic.slug !== tid + '/' + req.params.slug) && (results.topic.slug && results.topic.slug !== tid + '/')) {
-				var url = '/topic/' + results.topic.slug;
+				var url = '/topic/' + tid + "/" + results.topic.slug;
 				if (req.params.post_index) {
 					url += '/' + req.params.post_index;
 				}
 				if (currentPage > 1) {
 					url += '?page=' + currentPage;
 				}
-				return helpers.redirect(res, url);
+				return res.redirect(301, nconf.get('relative_path') + encodeURI(url));
 			}
 
 			settings = results.settings;
