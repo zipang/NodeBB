@@ -1,6 +1,7 @@
 {
     "banned": "Banned",
     "offline": "Väljas",
+    "deleted": "Deleted",
     "username": "Kasutajanimi",
     "joindate": "Liitumiskuupäev",
     "postcount": "Postitusi",
@@ -95,6 +96,7 @@
     "topics_per_page": "Teemasi ühe lehekülje kohta",
     "posts_per_page": "Postitusi ühe lehekülje kohta",
     "max_items_per_page": "Maximum %1",
+    "acp_language": "Admin Page Language",
     "notification_sounds": "Mängi heli, kui teade saabub.",
     "notifications_and_sounds": "Notifications & Sounds",
     "incoming-message-sound": "Incoming message sound",

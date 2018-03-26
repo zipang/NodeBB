@@ -113,7 +113,7 @@ Controllers.login = function (req, res, next) {
 		}
 		return res.redirect(nconf.get('relative_path') + data.authentication[0].url);
 	}
-	if (req.uid) {
+	if (req.loggedIn) {
 		user.getUserFields(req.uid, ['username', 'email'], function (err, user) {
 			if (err) {
 				return next(err);
@@ -166,7 +166,7 @@ Controllers.register = function (req, res, next) {
 			data.minimumUsernameLength = parseInt(meta.config.minimumUsernameLength, 10);
 			data.maximumUsernameLength = parseInt(meta.config.maximumUsernameLength, 10);
 			data.minimumPasswordLength = parseInt(meta.config.minimumPasswordLength, 10);
-			data.minimumPasswordStrength = parseInt(meta.config.minimumPasswordStrength || 0, 10);
+			data.minimumPasswordStrength = parseInt(meta.config.minimumPasswordStrength || 1, 10);
 			data.termsOfUse = termsOfUse.postData.content;
 			data.breadcrumbs = helpers.buildBreadcrumbs([{
 				text: '[[register:register]]',
@@ -233,6 +233,7 @@ Controllers.robots = function (req, res) {
 	} else {
 		res.send('User-agent: *\n' +
 			'Disallow: ' + nconf.get('relative_path') + '/admin/\n' +
+			'Disallow: ' + nconf.get('relative_path') + '/reset/\n' +
 			'Sitemap: ' + nconf.get('url') + '/sitemap.xml');
 	}
 };

@@ -1,6 +1,7 @@
 {
     "banned": "Utestengt",
     "offline": "Offline",
+    "deleted": "Deleted",
     "username": "Brukernavn",
     "joindate": "Registereringsdato",
     "postcount": "Antall innlegg",
@@ -95,6 +96,7 @@
     "topics_per_page": "Tråd per side",
     "posts_per_page": "Innlegg per side",
     "max_items_per_page": "Maximum %1",
+    "acp_language": "Admin Page Language",
     "notification_sounds": "Spill en lyd når du mottar et varsel",
     "notifications_and_sounds": "Notifications & Sounds",
     "incoming-message-sound": "Incoming message sound",

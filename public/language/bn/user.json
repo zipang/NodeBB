@@ -1,6 +1,7 @@
 {
     "banned": "নিষিদ্ধ",
     "offline": "অফলাইন",
+    "deleted": "Deleted",
     "username": "সদস্যের নাম",
     "joindate": "নিবন্ধন তারিখ",
     "postcount": "সর্বমোট পোষ্ট",
@@ -95,6 +96,7 @@
     "topics_per_page": "প্রতি পেজে কতগুলো টপিক থাকবে",
     "posts_per_page": "প্রতি পেইজে কতগুলো পোষ্ট থাকবে",
     "max_items_per_page": "Maximum %1",
+    "acp_language": "Admin Page Language",
     "notification_sounds": "নোটিফিকেশনের জন্য নোটিফিকেশন সাউন্ড এনাবল করুন",
     "notifications_and_sounds": "Notifications & Sounds",
     "incoming-message-sound": "Incoming message sound",

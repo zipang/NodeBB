@@ -9,14 +9,15 @@
 
 	"section-manage": "Spravovat",
 	"manage/categories": "Kategorie",
-	"manage/privileges": "Privileges",
+	"manage/privileges": "Oprávnění",
 	"manage/tags": "Značky",
 	"manage/users": "Uživatelé",
-	"manage/admins-mods": "Admins & Mods",
+	"manage/admins-mods": "Správci a moderátoři",
 	"manage/registration": "Registrační fronta",
 	"manage/post-queue": "Fronta příspěvků",
 	"manage/groups": "Skupiny",
 	"manage/ip-blacklist": "Černá listina IP",
+	"manage/uploads": "Uploads",
 
 	"section-settings": "Nastavení",
 	"settings/general": "Všeobecné",
@@ -62,7 +63,7 @@
 	"development/logger": "Protokolář",
 	"development/info": "Informace",
 
-	"reload-forum": "Znovu načíst fórum",
+	"reload-forum": "Rebuild & Restart Forum",
 	"restart-forum": "Restartovat fórum",
 	"logout": "Odhlásit",
 	"view-forum": "Zobrazit fórum",
@@ -70,8 +71,11 @@
 	"search.placeholder": "Hledat nastavení",
 	"search.no-results": "Žádné výsledky…",
 	"search.search-forum": "Prohledat fórum pro <strong></strong>",
-	"search.keep-typing": "Pište dále pro zobrazení výsledků…",
-	"search.start-typing": "Začněte psát pro zobrazení výsledků…",
+	"search.keep-typing": "Pište dále pro zobrazení výsledků…",
+	"search.start-typing": "Začněte psát pro zobrazení výsledků…",
 
-	"connection-lost": "Připojení k %1 bylo ztraceno, snaha o opětovné připojení…"
+	"connection-lost": "Připojení k %1 bylo ztraceno, snaha o opětovné připojení…",
+
+	"alerts.version": "Running <strong>NodeBB v%1</strong>",
+	"alerts.upgrade": "Upgrade to v%1"
 }
