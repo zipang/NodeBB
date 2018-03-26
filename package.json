@@ -42,6 +42,7 @@
     "express-session": "^1.15.6",
     "express-useragent": "1.0.8",
     "graceful-fs": "^4.1.11",
+    "gray-matter": "^3.1.1",
     "html-to-text": "3.3.0",
     "ipaddr.js": "^1.5.4",
     "jimp": "0.2.28",

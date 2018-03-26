@@ -216,6 +216,7 @@ module.exports = function (app, middleware, hotswapIds, callback) {
 	});
 
 	app.use(relativePath + '/assets/vendor/jquery/timeago/locales', middleware.processTimeagoLocales);
+	app.use(controllers.redirections);
 	app.use(controllers['404'].handle404);
 	app.use(controllers.errors.handleURIErrors);
 	app.use(controllers.errors.handleErrors);
