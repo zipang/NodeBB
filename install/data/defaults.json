@@ -27,6 +27,7 @@
     "minimumPasswordLength": 6,
     "maximumSignatureLength": 255,
     "maximumAboutMeLength": 1000,
+    "maximumChatMessageLength": 1000,
     "maximumProfileImageSize": 256,
     "maximumCoverImageSize": 2048,
     "profileImageDimension": 200,
@@ -38,5 +39,11 @@
     "bookmarkThreshold": 5,
     "topicsPerList": 20,
     "autoDetectLang": 1,
-    "min:rep:flag": 0
+    "min:rep:flag": 0,
+    "notificationType_upvote": "notification",
+    "notificationType_new-topic": "notification",
+    "notificationType_new-reply": "notification",
+    "notificationType_follow": "notification",
+    "notificationType_new-chat": "notification",
+    "notificationType_group-invite": "notification"
 }

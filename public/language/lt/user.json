@@ -1,6 +1,7 @@
 {
     "banned": "Užblokuotas",
     "offline": "Atsijungęs",
+    "deleted": "Deleted",
     "username": "Vartotojo vardas",
     "joindate": "Prisijungimo data",
     "postcount": "Įrašų kiekis",
@@ -95,6 +96,7 @@
     "topics_per_page": "Temų puslapyje",
     "posts_per_page": "Pranešimų puslapyje",
     "max_items_per_page": "Maximum %1",
+    "acp_language": "Admin Page Language",
     "notification_sounds": "Paleisti garsą kai jūs gaunate pranešimą",
     "notifications_and_sounds": "Pranešimai ir garsai",
     "incoming-message-sound": "Gaunamos žinutės garsas",

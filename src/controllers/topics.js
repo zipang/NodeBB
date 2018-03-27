@@ -144,13 +144,9 @@ topicsController.get = function (req, res, callback) {
 			topicData.postEditDuration = parseInt(meta.config.postEditDuration, 10) || 0;
 			topicData.postDeleteDuration = parseInt(meta.config.postDeleteDuration, 10) || 0;
 			topicData.scrollToMyPost = settings.scrollToMyPost;
-
-			topicData['feeds:disableRSS'] = parseInt(meta.config['feeds:disableRSS'], 10) === 1;
-			if (!topicData['feeds:disableRSS']) {
-				topicData.rssFeedUrl = nconf.get('relative_path') + '/topic/' + topicData.tid + '.rss';
-				if (req.uid) {
-					topicData.rssFeedUrl += '?uid=' + req.uid + '&token=' + rssToken;
-				}
+			topicData.rssFeedUrl = nconf.get('relative_path') + '/topic/' + topicData.tid + '.rss';
+			if (req.loggedIn) {
+				topicData.rssFeedUrl += '?uid=' + req.uid + '&token=' + rssToken;
 			}
 
 			addTags(topicData, req, res);
@@ -168,7 +164,7 @@ topicsController.get = function (req, res, callback) {
 				req.session.tids_viewed[tid] = Date.now();
 			}
 
-			if (req.uid) {
+			if (req.loggedIn) {
 				topics.markAsRead([tid], req.uid, function (err, markedRead) {
 					if (err) {
 						return callback(err);

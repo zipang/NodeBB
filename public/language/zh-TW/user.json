@@ -1,6 +1,7 @@
 {
     "banned": "封鎖",
     "offline": "下線",
+    "deleted": "Deleted",
     "username": "使用者名稱",
     "joindate": "加入時間",
     "postcount": "文章數量",
@@ -95,6 +96,7 @@
     "topics_per_page": "每頁的主題數",
     "posts_per_page": "每頁的文章數",
     "max_items_per_page": "Maximum %1",
+    "acp_language": "Admin Page Language",
     "notification_sounds": "當你接收到通知時撥放音效",
     "notifications_and_sounds": "通知&音效",
     "incoming-message-sound": "收到訊息音效",

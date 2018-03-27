@@ -3,6 +3,7 @@
 
 var fs = require('fs');
 var path = require('path');
+var os = require('os');
 var nconf = require('nconf');
 var express = require('express');
 var app = express();
@@ -16,6 +17,8 @@ var cookieParser = require('cookie-parser');
 var session = require('express-session');
 var useragent = require('express-useragent');
 var favicon = require('serve-favicon');
+var detector = require('spider-detector');
+var helmet = require('helmet');
 
 var db = require('./database');
 var file = require('./file');
@@ -72,6 +75,7 @@ module.exports.listen = function (callback) {
 
 			require('./socket.io').server.emit('event:nodebb.ready', {
 				'cache-buster': meta.config['cache-buster'],
+				hostname: os.hostname(),
 			});
 
 			plugins.fireHook('action:nodebb.ready');
@@ -159,6 +163,7 @@ function setupExpressApp(app, callback) {
 	app.use(bodyParser.json());
 	app.use(cookieParser());
 	app.use(useragent.express());
+	app.use(detector.middleware());
 
 	app.use(session({
 		store: db.sessionStore,
@@ -169,6 +174,8 @@ function setupExpressApp(app, callback) {
 		saveUninitialized: true,
 	}));
 
+	app.use(helmet());
+	app.use(helmet.referrerPolicy({ policy: 'strict-origin-when-cross-origin' }));
 	app.use(middleware.addHeaders);
 	app.use(middleware.processRender);
 	auth.initialize(app, middleware);

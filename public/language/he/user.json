@@ -1,6 +1,7 @@
 {
     "banned": "מורחק",
     "offline": "לא מחובר",
+    "deleted": "Deleted",
     "username": "שם משתמש",
     "joindate": "תאריך הצטרפות",
     "postcount": "כמות פוסטים",
@@ -95,6 +96,7 @@
     "topics_per_page": "כמות נושאים בעמוד",
     "posts_per_page": "כמות פוסטים בעמוד",
     "max_items_per_page": "Maximum %1",
+    "acp_language": "Admin Page Language",
     "notification_sounds": "נגן סאונד כשמתקבלת התראה",
     "notifications_and_sounds": "התראות וצלילים",
     "incoming-message-sound": "צליל הודעה נכנסת",
