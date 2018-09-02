@@ -75,6 +75,7 @@ JS.scripts = {
 		'public/src/modules/helpers.js',
 		'public/src/modules/flags.js',
 		'public/src/modules/storage.js',
+		'public/src/modules/handleBack.js',
 	],
 
 	admin: [
@@ -85,7 +86,6 @@ JS.scripts = {
 		'public/vendor/semver/semver.browser.js',
 		'public/vendor/jquery/serializeObject/jquery.ba-serializeobject.min.js',
 		'public/vendor/jquery/deserialize/jquery.deserialize.min.js',
-		'public/vendor/snackbar/snackbar.min.js',
 		'public/vendor/slideout/slideout.min.js',
 		'public/vendor/nprogress.min.js',
 	],

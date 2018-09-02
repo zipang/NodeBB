@@ -41,7 +41,11 @@ define('search', ['navigator', 'translator', 'storage'], function (nav, translat
 			in: searchIn,
 		};
 
-		if (postedBy && (searchIn === 'posts' || searchIn === 'titles' || searchIn === 'titlesposts')) {
+		if (data.matchWords) {
+			query.matchWords = data.matchWords;
+		}
+
+		if (postedBy && postedBy.length && (searchIn === 'posts' || searchIn === 'titles' || searchIn === 'titlesposts')) {
 			query.by = postedBy;
 		}
 

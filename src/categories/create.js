@@ -64,6 +64,7 @@ module.exports = function (Categories) {
 					'topics:reply',
 					'topics:tag',
 					'posts:edit',
+					'posts:history',
 					'posts:delete',
 					'posts:upvote',
 					'posts:downvote',
@@ -83,6 +84,7 @@ module.exports = function (Categories) {
 					async.apply(privileges.categories.give, defaultPrivileges, category.cid, 'administrators'),
 					async.apply(privileges.categories.give, defaultPrivileges, category.cid, 'registered-users'),
 					async.apply(privileges.categories.give, ['find', 'read', 'topics:read'], category.cid, 'guests'),
+					async.apply(privileges.categories.give, ['find', 'read', 'topics:read'], category.cid, 'spiders'),
 				], next);
 			},
 			function (results, next) {

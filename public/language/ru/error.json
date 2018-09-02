@@ -18,6 +18,7 @@
     "invalid-username-or-password": "Пожалуйста, укажите имя пользователя и пароль",
     "invalid-search-term": "Неверный поисковой запрос",
     "invalid-url": "Invalid URL",
+    "local-login-disabled": "Local login system has been disabled for non-privileged accounts.",
     "csrf-invalid": "Нам не удалось вас найти из-за просроченной сессии. Попробуйте ещё раз.",
     "invalid-pagination-value": "Неверно указан номер страницы. Значение должно быть в диапазоне от %1 до %2",
     "username-taken": "Участник с таким именем пользователя уже зарегистрирован. Пожалуйста, выберите другое имя пользователя.",
@@ -126,6 +127,8 @@
     "not-enough-reputation-min-rep-website": "You do not have enough reputation to add a website",
     "not-enough-reputation-min-rep-aboutme": "You do not have enough reputation to add an about me",
     "not-enough-reputation-min-rep-signature": "You do not have enough reputation to add a signature",
+    "not-enough-reputation-min-rep-profile-picture": "You do not have enough reputation to add a profile picture",
+    "not-enough-reputation-min-rep-cover-picture": "You do not have enough reputation to add a cover picture",
     "already-flagged": "Вы уже отметили это сообщение",
     "self-vote": "You cannot vote on your own post",
     "reload-failed": "NodeBB обнаружил проблему при перезагрузке: \"%1\". NodeBB продолжит работать с существующими ресурсами клиента, но вы должны отменить то, что сделали перед перезагрузкой.",
@@ -145,5 +148,8 @@
     "invalid-session": "Сессия не существует",
     "invalid-session-text": "Похоже, что ваша сессия больше не активна или она не совпадает с сессией на сервере. Пожалуйста, обновите эту страницу.",
     "no-topics-selected": "No topics selected!",
-    "cant-move-to-same-topic": "Can't move post to same topic!"
+    "cant-move-to-same-topic": "Can't move post to same topic!",
+    "cannot-block-self": "You cannot block yourself!",
+    "cannot-block-privileged": "You cannot block administrators or global moderators",
+    "no-connection": "There seems to be a problem with your internet connection"
 }

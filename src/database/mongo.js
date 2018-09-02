@@ -10,6 +10,7 @@ var _ = require('lodash');
 var semver = require('semver');
 var prompt = require('prompt');
 var db;
+var client;
 
 var mongoModule = module.exports;
 
@@ -61,7 +62,7 @@ mongoModule.questions = [
 mongoModule.helpers = mongoModule.helpers || {};
 mongoModule.helpers.mongo = require('./mongo/helpers');
 
-function getConnectionString() {
+mongoModule.getConnectionString = function () {
 	var usernamePassword = '';
 	if (nconf.get('mongo:username') && nconf.get('mongo:password')) {
 		usernamePassword = nconf.get('mongo:username') + ':' + encodeURIComponent(nconf.get('mongo:password')) + '@';
@@ -89,15 +90,9 @@ function getConnectionString() {
 	}
 
 	return nconf.get('mongo:uri') || 'mongodb://' + usernamePassword + servers.join() + '/' + nconf.get('mongo:database');
-}
+};
 
-mongoModule.init = function (callback) {
-	callback = callback || function () { };
-
-	var mongoClient = require('mongodb').MongoClient;
-
-	var connString = getConnectionString();
-
+mongoModule.getConnectionOptions = function () {
 	var connOptions = {
 		poolSize: 10,
 		reconnectTries: 3600,
@@ -105,15 +100,24 @@ mongoModule.init = function (callback) {
 		autoReconnect: true,
 	};
 
-	connOptions = _.merge(connOptions, nconf.get('mongo:options') || {});
+	return _.merge(connOptions, nconf.get('mongo:options') || {});
+};
 
-	mongoClient.connect(connString, connOptions, function (err, _db) {
+mongoModule.init = function (callback) {
+	callback = callback || function () { };
+
+	var mongoClient = require('mongodb').MongoClient;
+
+	var connString = mongoModule.getConnectionString();
+	var connOptions = mongoModule.getConnectionOptions();
+
+	mongoClient.connect(connString, connOptions, function (err, _client) {
 		if (err) {
 			winston.error('NodeBB could not connect to your Mongo database. Mongo returned the following error', err);
 			return callback(err);
 		}
-
-		db = _db;
+		client = _client;
+		db = client.db();
 
 		mongoModule.client = db;
 
@@ -264,10 +268,12 @@ function getCollectionStats(db, callback) {
 
 mongoModule.close = function (callback) {
 	callback = callback || function () {};
-	db.close(callback);
+	client.close(function (err) {
+		callback(err);
+	});
 };
 
 mongoModule.socketAdapter = function () {
 	var mongoAdapter = require('socket.io-adapter-mongo');
-	return mongoAdapter(getConnectionString());
+	return mongoAdapter(mongoModule.getConnectionString());
 };

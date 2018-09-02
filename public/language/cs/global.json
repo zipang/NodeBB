@@ -97,6 +97,7 @@
     "enter_page_number": "Zadejte číslo stránky",
     "upload_file": "Nahrár soubor",
     "upload": "Nahrát",
+    "uploads": "Náhráno",
     "allowed-file-types": "Povolené typy souborů jsou %1",
     "unsaved-changes": "Některé změny nebyly uloženy. Jste si jist, že chcete jít jinam?",
     "reconnecting-message": "Vypadá to, že vaše připojení k %1 bylo ukončeno. Vyčkejte prosím, než obnovíme připojení.",
@@ -107,5 +108,5 @@
     "edited": "Upraveno",
     "disabled": "Nepovoleno",
     "select": "Vyberte",
-    "user-search-prompt": "Type something here to find users..."
+    "user-search-prompt": "Pro hledání uživatelů, zde pište..."
 }

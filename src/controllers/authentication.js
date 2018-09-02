@@ -152,7 +152,12 @@ authenticationController.registerComplete = function (req, res, next) {
 
 		var callbacks = data.interstitials.reduce(function (memo, cur) {
 			if (cur.hasOwnProperty('callback') && typeof cur.callback === 'function') {
-				memo.push(async.apply(cur.callback, req.session.registration, req.body));
+				memo.push(function (next) {
+					cur.callback(req.session.registration, req.body, function (err) {
+						// Pass error as second argument so all callbacks are executed
+						next(null, err);
+					});
+				});
 			}
 
 			return memo;
@@ -170,9 +175,15 @@ authenticationController.registerComplete = function (req, res, next) {
 			}
 		};
 
-		async.parallel(callbacks, function (err) {
-			if (err) {
-				req.flash('error', err.message);
+		async.parallel(callbacks, function (_blank, err) {
+			if (err.length) {
+				err = err.filter(Boolean).map(function (err) {
+					return err.message;
+				});
+			}
+
+			if (err.length) {
+				req.flash('errors', err);
 				return res.redirect(nconf.get('relative_path') + '/register/complete');
 			}
 
@@ -180,8 +191,18 @@ authenticationController.registerComplete = function (req, res, next) {
 				res.locals.processLogin = true;
 				registerAndLoginUser(req, res, req.session.registration, done);
 			} else {
-				// Clear registration data in session
-				done();
+				// Update user hash, clear registration data in session
+				const payload = req.session.registration;
+				const uid = payload.uid;
+				delete payload.uid;
+
+				Object.keys(payload).forEach((prop) => {
+					if (typeof payload[prop] === 'boolean') {
+						payload[prop] = payload[prop] ? 1 : 0;
+					}
+				});
+
+				user.setUserFields(uid, payload, done);
 			}
 		});
 	});
@@ -380,8 +401,8 @@ authenticationController.localLogin = function (req, username, password, next) {
 				userData: function (next) {
 					db.getObjectFields('user:' + uid, ['password', 'passwordExpiry'], next);
 				},
-				isAdmin: function (next) {
-					user.isAdministrator(uid, next);
+				isAdminOrGlobalMod: function (next) {
+					user.isAdminOrGlobalMod(uid, next);
 				},
 				banned: function (next) {
 					user.isBanned(uid, next);
@@ -391,9 +412,9 @@ authenticationController.localLogin = function (req, username, password, next) {
 		function (result, next) {
 			userData = result.userData;
 			userData.uid = uid;
-			userData.isAdmin = result.isAdmin;
+			userData.isAdminOrGlobalMod = result.isAdminOrGlobalMod;
 
-			if (!result.isAdmin && parseInt(meta.config.allowLocalLogin, 10) === 0) {
+			if (!result.isAdminOrGlobalMod && parseInt(meta.config.allowLocalLogin, 10) === 0) {
 				return next(new Error('[[error:local-login-disabled]]'));
 			}
 
