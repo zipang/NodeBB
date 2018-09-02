@@ -32,6 +32,9 @@ module.exports = function (SocketUser) {
 				user.isAdminOrGlobalModOrSelf(socket.uid, data.uid, next);
 			},
 			function (next) {
+				user.checkMinReputation(socket.uid, data.uid, 'min:rep:cover-picture', next);
+			},
+			function (next) {
 				user.updateCoverPicture(data, next);
 			},
 		], callback);
@@ -44,6 +47,9 @@ module.exports = function (SocketUser) {
 		async.waterfall([
 			function (next) {
 				user.isAdminOrGlobalModOrSelf(socket.uid, data.uid, next);
+			},
+			function (next) {
+				user.checkMinReputation(socket.uid, data.uid, 'min:rep:profile-picture', next);
 			},
 			function (next) {
 				user.uploadCroppedPicture(data, next);
@@ -90,7 +96,7 @@ module.exports = function (SocketUser) {
 					return next(new Error('[[error:no-privileges]]'));
 				}
 
-				if ((!results.isAdmin || !results.isGlobalMod) && !isSelf) {
+				if (!isSelf && !(results.isAdmin || results.isGlobalMod)) {
 					return next(new Error('[[error:no-privileges]]'));
 				}
 
@@ -192,5 +198,27 @@ module.exports = function (SocketUser) {
 				next(null, userData);
 			},
 		], callback);
+	};
+
+	SocketUser.toggleBlock = function (socket, data, callback) {
+		let current;
+
+		async.waterfall([
+			function (next) {
+				user.blocks.can(socket.uid, data.blockerUid, data.blockeeUid, next);
+			},
+			function (can, next) {
+				if (!can) {
+					return next(new Error('[[error:cannot-block-privileged]]'));
+				}
+				user.blocks.is(data.blockeeUid, data.blockerUid, next);
+			},
+			function (is, next) {
+				current = is;
+				user.blocks[is ? 'remove' : 'add'](data.blockeeUid, data.blockerUid, next);
+			},
+		], function (err) {
+			callback(err, !current);
+		});
 	};
 };

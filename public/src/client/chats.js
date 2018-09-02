@@ -57,6 +57,20 @@ define('forum/chats', [
 		Chats.addLeaveHandler(ajaxify.data.roomId, components.get('chat/controls').find('[data-action="leave"]'));
 		Chats.addScrollHandler(ajaxify.data.roomId, ajaxify.data.uid, $('.chat-content'));
 		Chats.addCharactersLeftHandler($('[component="chat/main-wrapper"]'));
+		Chats.addIPHandler($('[component="chat/main-wrapper"]'));
+	};
+
+	Chats.addIPHandler = function (container) {
+		container.on('click', '.chat-ip-button', function () {
+			var ipEl = $(this).parent();
+			var mid = ipEl.parents('[data-mid]').attr('data-mid');
+			socket.emit('modules.chats.getIP', mid, function (err, ip) {
+				if (err) {
+					return app.alertError(err);
+				}
+				ipEl.html(ip);
+			});
+		});
 	};
 
 	Chats.addPopoutHandler = function () {
@@ -119,9 +133,8 @@ define('forum/chats', [
 
 	Chats.addCharactersLeftHandler = function (parent) {
 		var element = parent.find('[component="chat/input"]');
-		element.on('keyup', function () {
-			parent.find('[component="chat/message/length"]').text(element.val().length);
-			parent.find('[component="chat/message/remaining"]').text(config.maximumChatMessageLength - element.val().length);
+		element.on('change keyup paste', function () {
+			messages.updateRemainingLength(parent);
 		});
 	};
 
@@ -190,6 +203,7 @@ define('forum/chats', [
 					modal.attr('component', 'chat/manage-modal');
 
 					Chats.refreshParticipantsList(roomId, modal);
+					Chats.addKickHandler(roomId, modal);
 
 					var searchInput = modal.find('input');
 					var errorEl = modal.find('.text-danger');
@@ -212,6 +226,23 @@ define('forum/chats', [
 						});
 					});
 				});
+			});
+		});
+	};
+
+	Chats.addKickHandler = function (roomId, modal) {
+		modal.on('click', '[data-action="kick"]', function () {
+			var uid = parseInt(this.getAttribute('data-uid'), 10);
+
+			socket.emit('modules.chats.removeUserFromRoom', {
+				roomId: roomId,
+				uid: uid,
+			}, function (err) {
+				if (err) {
+					return app.alertError(err.message);
+				}
+
+				Chats.refreshParticipantsList(roomId, modal);
 			});
 		});
 	};
@@ -255,7 +286,7 @@ define('forum/chats', [
 				});
 			}
 
-			Benchpress.parse('partials/modals/manage_room_users', {
+			app.parseAndTranslate('partials/modals/manage_room_users', {
 				users: users,
 			}, function (html) {
 				listEl.html(html);
@@ -455,7 +486,7 @@ define('forum/chats', [
 		if (ajaxify.data.roomId) {
 			socket.emit('modules.chats.markRead', ajaxify.data.roomId);
 			$('[data-roomid="' + ajaxify.data.roomId + '"]').toggleClass('unread', false);
-			$('.expanded-chat input').focus();
+			$('.expanded-chat [component="chat/input"]').focus();
 		}
 		$('.chats-list li').removeClass('bg-info');
 		$('.chats-list li[data-roomid="' + ajaxify.data.roomId + '"]').addClass('bg-info');

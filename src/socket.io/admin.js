@@ -58,17 +58,26 @@ SocketAdmin.before = function (socket, method, data, next) {
 	], next);
 };
 
-SocketAdmin.reload = function (socket, data, callback) {
+SocketAdmin.restart = function (socket, data, callback) {
+	logRestart(socket);
+	meta.restart();
+	callback();
+};
+
+function logRestart(socket) {
 	events.log({
 		type: 'restart',
 		uid: socket.uid,
 		ip: socket.ip,
 	});
-	meta.restart();
-	callback();
-};
+	db.setObject('lastrestart', {
+		uid: socket.uid,
+		ip: socket.ip,
+		timestamp: Date.now(),
+	});
+}
 
-SocketAdmin.restart = function (socket, data, callback) {
+SocketAdmin.reload = function (socket, data, callback) {
 	async.waterfall([
 		function (next) {
 			require('../meta/build').buildAll(next);
@@ -80,12 +89,7 @@ SocketAdmin.restart = function (socket, data, callback) {
 				ip: socket.ip,
 			});
 
-			events.log({
-				type: 'restart',
-				uid: socket.uid,
-				ip: socket.ip,
-			});
-
+			logRestart(socket);
 			meta.restart();
 			next();
 		},
