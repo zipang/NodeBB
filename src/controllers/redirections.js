@@ -1,9 +1,14 @@
-var nconf = require("nconf"),
+var nconf   = require("nconf"),
 	winston = require("winston"),
-	fs = require("fs-extra"),
-	wtm = require("gray-matter");
+	{ URL } = require("url"),
+	fs      = require("fs-extra"),
+	matter  = require("gray-matter");
 
-class PropertyFileWatcher {
+/**
+ * A Watcher watches a file for modifications,
+ * then reload and parse its front-matter content to expose it
+ */
+class Watcher {
 
 	constructor(path, options) {
 		this._path = path;
@@ -19,12 +24,15 @@ class PropertyFileWatcher {
 	loadFileData() {
 
 		try {
-			this.data = wtm.read(this._path).data;
-			winston.info(`LOADED ${this.data} redirections from ${this._path}`);
+			this.data = matter.read(this._path).data;
+			winston.info(`LOADED ${this.data.length} redirections rules from ${this._path}`);
+
 		} catch (err) {
-			winston.error("ERROR parsing YAML values : " + this._path);
+			this.data = [];
+			winston.error("ERROR parsing when Front Matter values : " + this._path);
 			winston.error(err);
 		}
+
 		if (this._options.transform) {
 			this.data = this._options.transform(this.data);
 		}
@@ -36,13 +44,14 @@ var watcher = null; // not loaded
 
 function initWatcher() {
 	try {
-		watcher = new PropertyFileWatcher(
+		watcher = new Watcher(
 			nconf.get("redirections_file"),
 			{
 				transform: function(data) {
 					return data.redirections.map(function(redir) {
 						return {
-							origin: new RegExp("^" + redir.origin + "$", "i"),
+							origin: new RegExp("^" + redir.origin, "i"),
+							site: nconf.get("domains")[redir.destination],
 							path: redir.path || ""
 						}
 					});
@@ -58,19 +67,28 @@ function initWatcher() {
 	}
 }
 
+/**
+ * Express Redirections Middleware
+ * @param {Request} req
+ * @param {Response} res
+ * @param {Function} next
+ */
 module.exports = function (req, res, next) {
 
-	// Lazily load the redirection file
+	// Lazily load the watcher on redirections
 	if (!watcher) initWatcher();
 
-	var redirectionRules = watcher.data;
+	winston.debug(`I don't know what to do with that : ${req.path} - from ${req.headers.referer} - ${Object.keys(req.headers)}`);
+
+	var redirectURL, redirectionRules = watcher.data;
 
 	// Find the first redirection rule that would match our requested path
 	var match = redirectionRules.find(rule => rule.origin.test(req.path))
 
 	if (match) {
-		winston.info(`Redirecting ${req.path} to ${match.path}`);
-		return res.redirect(301, nconf.get("relative_path") + encodeURI(match.path));
+		redirectURL = new URL(req.path.replace(match.origin, match.path), match.site);
+		winston.info(`Redirecting ${req.path} to ${redirectURL}`);
+		return res.redirect(301, redirectURL);
 	} else {
 		return next();
 	}
