@@ -78,6 +78,7 @@
     "still-uploading": "Prosím čakajte na dokončenie nahrávania",
     "file-too-big": "Najväčšia povolená veľkosť obrázka je %1 kB - prosím nahrajte menší súbor",
     "guest-upload-disabled": "Nahrávanie pre hostí bolo zablokované",
+    "cors-error": "Nieje možné nahrať obrázok kvôli zle nastavenému „Cross-Origin Resource Sharing (CORS)”",
     "already-bookmarked": "Tento príspevok máte už medzi záložkami",
     "already-unbookmarked": "Tento príspevok už nemáte medzi záložkami",
     "cant-ban-other-admins": "Nemôžte zablokovať iných správcov.",
@@ -87,6 +88,7 @@
     "invalid-image-type": "Neplatný typ obrázku. Povolené typy sú: %1",
     "invalid-image-extension": "Neplatná prípona obrázku",
     "invalid-file-type": "Neplatný typ súboru. Povolené typy sú: %1",
+    "invalid-image-dimensions": "Image dimensions are too big",
     "group-name-too-short": "Názov skupiny je príliš krátky",
     "group-name-too-long": "Názov skupiny je príliš dlhý",
     "group-already-exists": "Skupina už existuje",
@@ -118,7 +120,7 @@
     "chat-edit-duration-expired": "Je Vám umožnené upraviť správy konverzácie po dobu %1 sekúnd po ich odoslaní",
     "chat-delete-duration-expired": "Je Vám umožnené odstrániť správy konverzácie po dobu %1 sekúnd po ich odoslaní",
     "chat-deleted-already": "Táto správa konverzácie už bola odstránená.",
-    "chat-restored'already": "Táto správa konverzácie bola obnovená",
+    "chat-restored-already": "This chat message has already been restored.",
     "already-voting-for-this-post": "Za tento príspevok ste už hlasovali.",
     "reputation-system-disabled": "Systém reputácie je zablokovaný.",
     "downvoting-disabled": "Hlasovanie proti je zablokované",
@@ -151,5 +153,8 @@
     "cant-move-to-same-topic": "Nie je možné presunúť príspevok do rovnakej témy!",
     "cannot-block-self": "Nemôžete zablokovať seba samého!",
     "cannot-block-privileged": "Nemôžete zablokovať správcov alebo hlavných moderátorov",
+    "cannot-block-guest": "Guest are not able to block other users",
+    "already-blocked": "This user is already blocked",
+    "already-unblocked": "This user is already unblocked",
     "no-connection": "Zdá sa, že máte problém s pripojením k internetu"
 }

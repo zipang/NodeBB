@@ -11,6 +11,7 @@ var events = require('../events');
 var meta = require('../meta');
 var plugins = require('../plugins');
 var widgets = require('../widgets');
+var privileges = require('../privileges');
 
 var dirname = require('./paths').baseDir;
 
@@ -86,9 +87,13 @@ exports.reset = function (options, callback) {
 };
 
 function resetSettings(callback) {
-	meta.configs.set('allowLocalLogin', 1, function (err) {
+	privileges.global.give(['local:login'], 'registered-users', function (err) {
+		if (err) {
+			return callback(err);
+		}
+		winston.info('[reset] registered-users given login privilege');
 		winston.info('[reset] Settings reset to default');
-		callback(err);
+		callback();
 	});
 }
 
@@ -146,7 +151,7 @@ function resetPlugin(pluginId, callback) {
 		},
 	], function (err) {
 		if (err) {
-			winston.error('[reset] Could not disable plugin: %s encountered error %s', pluginId, err);
+			winston.error('[reset] Could not disable plugin: ' + pluginId + ' encountered error %s', err);
 		} else if (active) {
 			winston.info('[reset] Plugin `%s` disabled', pluginId);
 		} else {

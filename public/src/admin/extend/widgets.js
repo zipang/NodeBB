@@ -149,7 +149,7 @@ define('admin/extend/widgets', ['jqueryui'], function () {
 				.addClass(btn.attr('data-class'));
 
 			container.attr('data-container-html', container.attr('data-container-html')
-				.replace(/class="[a-zA-Z0-9-\s]+"/, 'class="' + container[0].className.replace(' pointer ui-draggable', '') + '"'));
+				.replace(/class="[a-zA-Z0-9-\s]+"/, 'class="' + container[0].className.replace(' pointer ui-draggable ui-draggable-handle', '') + '"'));
 		});
 	}
 
@@ -177,7 +177,8 @@ define('admin/extend/widgets', ['jqueryui'], function () {
 				})
 				.children('.panel-heading')
 				.append('<div class="pull-right pointer"><span class="delete-widget"><i class="fa fa-times-circle"></i></span></div><div class="pull-left pointer"><span class="toggle-widget"><i class="fa fa-chevron-circle-down"></i></span>&nbsp;</div>')
-				.children('small').html('');
+				.children('small')
+				.html('');
 		}
 	}
 

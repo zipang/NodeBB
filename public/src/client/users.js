@@ -17,7 +17,8 @@ define('forum/users', ['translator', 'benchpress'], function (translator, Benchp
 		app.enterRoom('user_list');
 
 		var section = utils.params().section ? ('?section=' + utils.params().section) : '';
-		$('.nav-pills li').removeClass('active').find('a[href="' + window.location.pathname + section + '"]').parent().addClass('active');
+		$('.nav-pills li').removeClass('active').find('a[href="' + window.location.pathname + section + '"]').parent()
+			.addClass('active');
 
 		handleSearch();
 
@@ -130,7 +131,7 @@ define('forum/users', ['translator', 'benchpress'], function (translator, Benchp
 
 	function handleInvite() {
 		$('[component="user/invite"]').on('click', function () {
-			bootbox.prompt('Email: ', function (email) {
+			bootbox.prompt('[[users:prompt-email]]', function (email) {
 				if (!email) {
 					return;
 				}

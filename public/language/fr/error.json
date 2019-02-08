@@ -78,6 +78,7 @@
     "still-uploading": "Veuillez patienter pendant l'envoi des fichiers.",
     "file-too-big": "La taille maximale autorisée pour un fichier est de %1 ko. Veuillez envoyer un fichier plus petit.",
     "guest-upload-disabled": "L'envoi de fichiers a été désactivé pour les invités",
+    "cors-error": "Impossible d'envoyer l'image en raison d'une erreur de configuration CORS",
     "already-bookmarked": "Vous avez déjà mis un marque-page",
     "already-unbookmarked": "Vous avez déjà retiré un marque-page",
     "cant-ban-other-admins": "Vous ne pouvez pas bannir les autres administrateurs !",
@@ -87,6 +88,7 @@
     "invalid-image-type": "Type d'image invalide. Les types autorisés sont: %1",
     "invalid-image-extension": "Extension d'image invalide",
     "invalid-file-type": "Type de fichier non valide. Les types autorisés sont : %1",
+    "invalid-image-dimensions": "Les dimensions des images sont trop grandes",
     "group-name-too-short": "Nom de groupe trop court",
     "group-name-too-long": "Nom du groupe trop long",
     "group-already-exists": "Ce groupe existe déjà",
@@ -118,7 +120,7 @@
     "chat-edit-duration-expired": "Vous n'êtes autorisé à modifier des messages que pendant %1 seconde(s) après les avoir postés",
     "chat-delete-duration-expired": "Vous n'êtes autorisé à supprimer des messages que pendant %1 seconde(s) après les avoir postés",
     "chat-deleted-already": "Ce message a déjà été supprimé.",
-    "chat-restored'already": "Ce message a déjà été restauré.",
+    "chat-restored-already": "Ce message de discussion a déjà été restauré.",
     "already-voting-for-this-post": "Vous avez déjà voté pour ce message.",
     "reputation-system-disabled": "Le système de réputation est désactivé",
     "downvoting-disabled": "Les votes négatifs ne sont pas autorisés",
@@ -151,5 +153,8 @@
     "cant-move-to-same-topic": "Impossible de déplacer le message dans le même sujet !",
     "cannot-block-self": "Vous ne pouvez pas vous bloquer !",
     "cannot-block-privileged": "Vous ne pouvez pas bloquer les administrateurs ou les modérateurs global",
+    "cannot-block-guest": "Les Invités ne peut pas bloquer d'autres utilisateurs",
+    "already-blocked": "Cet utilisateur est déjà bloqué",
+    "already-unblocked": "Cet utilisateur est déjà débloqué",
     "no-connection": "Il semble y avoir un problème avec votre connexion Internet"
 }

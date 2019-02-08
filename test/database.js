@@ -22,10 +22,10 @@ describe('Test database', function () {
 			});
 		});
 
-		it('should not error and return null if client is falsy', function (done) {
+		it('should not error and return info if client is falsy', function (done) {
 			db.info(null, function (err, info) {
 				assert.ifError(err);
-				assert.equal(info, null);
+				assert(info);
 				done();
 			});
 		});
@@ -46,6 +46,11 @@ describe('Test database', function () {
 			} else if (dbName === 'mongo') {
 				db.checkCompatibilityVersion('1.8.0', function (err) {
 					assert.equal(err.message, 'The `mongodb` package is out-of-date, please run `./nodebb setup` again.');
+					done();
+				});
+			} else if (dbName === 'postgres') {
+				db.checkCompatibilityVersion('6.3.0', function (err) {
+					assert.equal(err.message, 'The `pg` package is out-of-date, please run `./nodebb setup` again.');
 					done();
 				});
 			}

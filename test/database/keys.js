@@ -53,6 +53,14 @@ describe('Key methods', function () {
 		});
 	});
 
+	it('should work for an array of keys', function (done) {
+		db.exists(['testKey', 'doesnotexist'], function (err, exists) {
+			assert.ifError(err);
+			assert.deepStrictEqual(exists, [true, false]);
+			done();
+		});
+	});
+
 	it('should delete a key without error', function (done) {
 		db.delete('testKey', function (err) {
 			assert.ifError(err);
@@ -172,6 +180,24 @@ describe('Key methods', function () {
 				});
 			});
 		});
+
+		it('should return the correct value', function (done) {
+			db.increment('testingCache', function (err) {
+				assert.ifError(err);
+				db.get('testingCache', function (err, value) {
+					assert.ifError(err);
+					assert.equal(value, 1);
+					db.increment('testingCache', function (err) {
+						assert.ifError(err);
+						db.get('testingCache', function (err, value) {
+							assert.ifError(err);
+							assert.equal(value, 2);
+							done();
+						});
+					});
+				});
+			});
+		});
 	});
 
 	describe('rename', function () {
@@ -188,6 +214,24 @@ describe('Key methods', function () {
 						assert.ifError(err);
 						assert.equal(value, 'renamedKeyValue');
 						done();
+					});
+				});
+			});
+		});
+
+		it('should rename multiple keys', function (done) {
+			db.sortedSetAdd('zsettorename', [1, 2, 3], ['value1', 'value2', 'value3'], function (err) {
+				assert.ifError(err);
+				db.rename('zsettorename', 'newzsetname', function (err) {
+					assert.ifError(err);
+					db.exists('zsettorename', function (err, exists) {
+						assert.ifError(err);
+						assert(!exists);
+						db.getSortedSetRange('newzsetname', 0, -1, function (err, values) {
+							assert.ifError(err);
+							assert.deepEqual(['value1', 'value2', 'value3'], values);
+							done();
+						});
 					});
 				});
 			});

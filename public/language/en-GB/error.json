@@ -92,6 +92,7 @@
 	"still-uploading": "Please wait for uploads to complete.",
 	"file-too-big": "Maximum allowed file size is %1 kB - please upload a smaller file",
 	"guest-upload-disabled": "Guest uploading has been disabled",
+	"cors-error": "Unable to upload image due to misconfigured CORS",
 
 	"already-bookmarked": "You have already bookmarked this post",
 	"already-unbookmarked": "You have already unbookmarked this post",
@@ -104,6 +105,7 @@
 	"invalid-image-type": "Invalid image type. Allowed types are: %1",
 	"invalid-image-extension": "Invalid image extension",
 	"invalid-file-type": "Invalid file type. Allowed types are: %1",
+	"invalid-image-dimensions": "Image dimensions are too big",
 
 	"group-name-too-short": "Group name too short",
 	"group-name-too-long": "Group name too long",
@@ -142,7 +144,7 @@
 	"chat-edit-duration-expired": "You are only allowed to edit chat messages for %1 second(s) after posting",
 	"chat-delete-duration-expired": "You are only allowed to delete chat messages for %1 second(s) after posting",
 	"chat-deleted-already": "This chat message has already been deleted.",
-	"chat-restored'already": "This chat message has already been restored.",
+	"chat-restored-already": "This chat message has already been restored.",
 
 	"already-voting-for-this-post": "You have already voted for this post.",
 	"reputation-system-disabled": "Reputation system is disabled.",
@@ -183,5 +185,8 @@
 
 	"cannot-block-self": "You cannot block yourself!",
 	"cannot-block-privileged": "You cannot block administrators or global moderators",
+	"cannot-block-guest": "Guest are not able to block other users",
+	"already-blocked": "This user is already blocked",
+	"already-unblocked": "This user is already unblocked",
 	"no-connection": "There seems to be a problem with your internet connection"
 }
