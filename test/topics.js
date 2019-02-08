@@ -23,7 +23,6 @@ describe('Topic\'s', function () {
 	var adminUid;
 
 	before(function (done) {
-		groups.resetCache();
 		User.create({ username: 'admin', password: '123456' }, function (err, uid) {
 			if (err) {
 				return done(err);
@@ -219,7 +218,33 @@ describe('Topic\'s', function () {
 
 
 		it('should not receive errors', function (done) {
-			topics.getTopicData(newTopic.tid, done);
+			topics.getTopicData(newTopic.tid, function (err, topicData) {
+				assert.ifError(err);
+				assert(typeof topicData.tid === 'number');
+				assert(typeof topicData.uid === 'number');
+				assert(typeof topicData.cid === 'number');
+				assert(typeof topicData.mainPid === 'number');
+
+				assert(typeof topicData.timestamp === 'number');
+				assert.strictEqual(topicData.postcount, 1);
+				assert.strictEqual(topicData.viewcount, 0);
+				assert.strictEqual(topicData.upvotes, 0);
+				assert.strictEqual(topicData.downvotes, 0);
+				assert.strictEqual(topicData.votes, 0);
+				assert.strictEqual(topicData.deleted, 0);
+				assert.strictEqual(topicData.locked, 0);
+				assert.strictEqual(topicData.pinned, 0);
+				done();
+			});
+		});
+
+		it('should get a single field', function (done) {
+			topics.getTopicFields(newTopic.tid, ['slug'], function (err, data) {
+				assert.ifError(err);
+				assert(Object.keys(data).length === 1);
+				assert(data.hasOwnProperty('slug'));
+				done();
+			});
 		});
 
 		it('should get topic title by pid', function (done) {
@@ -363,9 +388,9 @@ describe('Topic\'s', function () {
 		it('should pin topic', function (done) {
 			socketTopics.pin({ uid: 1 }, { tids: [newTopic.tid], cid: categoryObj.cid }, function (err) {
 				assert.ifError(err);
-				db.getObjectField('topic:' + newTopic.tid, 'pinned', function (err, pinned) {
+				topics.getTopicField(newTopic.tid, 'pinned', function (err, pinned) {
 					assert.ifError(err);
-					assert.strictEqual(parseInt(pinned, 10), 1);
+					assert.strictEqual(pinned, 1);
 					done();
 				});
 			});
@@ -374,9 +399,9 @@ describe('Topic\'s', function () {
 		it('should unpin topic', function (done) {
 			socketTopics.unpin({ uid: 1 }, { tids: [newTopic.tid], cid: categoryObj.cid }, function (err) {
 				assert.ifError(err);
-				db.getObjectField('topic:' + newTopic.tid, 'pinned', function (err, pinned) {
+				topics.getTopicField(newTopic.tid, 'pinned', function (err, pinned) {
 					assert.ifError(err);
-					assert.strictEqual(parseInt(pinned, 10), 0);
+					assert.strictEqual(pinned, 0);
 					done();
 				});
 			});
@@ -402,6 +427,120 @@ describe('Topic\'s', function () {
 					done();
 				});
 			});
+		});
+
+		it('should properly update sets when post is moved', function (done) {
+			var movedPost;
+			var previousPost;
+			var topic2LastReply;
+			var tid1;
+			var tid2;
+			var cid1 = topic.categoryId;
+			var cid2;
+			function checkCidSets(post1, post2, callback) {
+				async.waterfall([
+					function (next) {
+						async.parallel({
+							topicData: function (next) {
+								topics.getTopicsFields([tid1, tid2], ['lastposttime', 'postcount'], next);
+							},
+							scores1: function (next) {
+								db.sortedSetsScore([
+									'cid:' + cid1 + ':tids',
+									'cid:' + cid1 + ':tids:lastposttime',
+									'cid:' + cid1 + ':tids:posts',
+								], tid1, next);
+							},
+							scores2: function (next) {
+								db.sortedSetsScore([
+									'cid:' + cid2 + ':tids',
+									'cid:' + cid2 + ':tids:lastposttime',
+									'cid:' + cid2 + ':tids:posts',
+								], tid2, next);
+							},
+							posts1: function (next) {
+								db.getSortedSetRangeWithScores('tid:' + tid1 + ':posts', 0, -1, next);
+							},
+							posts2: function (next) {
+								db.getSortedSetRangeWithScores('tid:' + tid2 + ':posts', 0, -1, next);
+							},
+						}, next);
+					},
+					function (results, next) {
+						var assertMsg = JSON.stringify(results.posts1) + '\n' + JSON.stringify(results.posts2);
+						assert.equal(results.topicData[0].postcount, results.scores1[2], assertMsg);
+						assert.equal(results.topicData[1].postcount, results.scores2[2], assertMsg);
+						assert.equal(results.topicData[0].lastposttime, post1.timestamp, assertMsg);
+						assert.equal(results.topicData[1].lastposttime, post2.timestamp, assertMsg);
+						assert.equal(results.topicData[0].lastposttime, results.scores1[0], assertMsg);
+						assert.equal(results.topicData[1].lastposttime, results.scores2[0], assertMsg);
+						assert.equal(results.topicData[0].lastposttime, results.scores1[1], assertMsg);
+						assert.equal(results.topicData[1].lastposttime, results.scores2[1], assertMsg);
+
+						next();
+					},
+				], callback);
+			}
+
+			async.waterfall([
+				function (next) {
+					categories.create({
+						name: 'move to this category',
+						description: 'Test category created by testing script',
+					}, next);
+				},
+				function (category, next) {
+					cid2 = category.cid;
+					topics.post({ uid: adminUid, title: 'topic1', content: 'topic 1 mainPost', cid: cid1 }, next);
+				},
+				function (result, next) {
+					tid1 = result.topicData.tid;
+					topics.reply({ uid: adminUid, content: 'topic 1 reply 1', tid: tid1 }, next);
+				},
+				function (postData, next) {
+					previousPost = postData;
+					topics.reply({ uid: adminUid, content: 'topic 1 reply 2', tid: tid1 }, next);
+				},
+				function (postData, next) {
+					movedPost = postData;
+					topics.post({ uid: adminUid, title: 'topic2', content: 'topic 2 mainpost', cid: cid2 }, next);
+				},
+				function (results, next) {
+					tid2 = results.topicData.tid;
+					topics.reply({ uid: adminUid, content: 'topic 2 reply 1', tid: tid2 }, next);
+				},
+				function (postData, next) {
+					topic2LastReply = postData;
+					checkCidSets(movedPost, postData, next);
+				},
+				function (next) {
+					db.isMemberOfSortedSets(['cid:' + cid1 + ':pids', 'cid:' + cid2 + ':pids'], movedPost.pid, next);
+				},
+				function (isMember, next) {
+					assert.deepEqual(isMember, [true, false]);
+					categories.getCategoriesFields([cid1, cid2], ['post_count'], next);
+				},
+				function (categoryData, next) {
+					assert.equal(categoryData[0].post_count, 4);
+					assert.equal(categoryData[1].post_count, 2);
+					topics.movePostToTopic(1, movedPost.pid, tid2, next);
+				},
+				function (next) {
+					checkCidSets(previousPost, topic2LastReply, next);
+				},
+				function (next) {
+					db.isMemberOfSortedSets(['cid:' + cid1 + ':pids', 'cid:' + cid2 + ':pids'], movedPost.pid, next);
+				},
+				function (isMember, next) {
+					assert.deepEqual(isMember, [false, true]);
+					categories.getCategoriesFields([cid1, cid2], ['post_count'], next);
+				},
+				function (categoryData, next) {
+					assert.equal(categoryData[0].post_count, 3);
+					assert.equal(categoryData[1].post_count, 3);
+					next();
+				},
+			], done);
 		});
 
 		it('should purge the topic', function (done) {
@@ -561,7 +700,7 @@ describe('Topic\'s', function () {
 					var topic;
 					var i;
 					for (i = 0; i < topics.length; i += 1) {
-						if (parseInt(topics[i].tid, 10) === parseInt(newTid, 10)) {
+						if (topics[i].tid === parseInt(newTid, 10)) {
 							assert.equal(false, topics[i].unread, 'ignored topic was marked as unread in recent list');
 							return done();
 						}
@@ -795,8 +934,8 @@ describe('Topic\'s', function () {
 			request(nconf.get('url') + '/api/topic/' + topicData.slug + '/-1', { json: true }, function (err, res, body) {
 				assert.ifError(err);
 				assert.equal(res.statusCode, 200);
-				assert.equal(res.headers['x-redirect'], '/topic/13/topic-for-controller-test');
-				assert.equal(body, '/topic/13/topic-for-controller-test');
+				assert.equal(res.headers['x-redirect'], '/topic/15/topic-for-controller-test');
+				assert.equal(body, '/topic/15/topic-for-controller-test');
 				done();
 			});
 		});
@@ -925,7 +1064,7 @@ describe('Topic\'s', function () {
 		});
 
 		it('should error with invalid data', function (done) {
-			socketTopics.loadMoreUnreadTopics({ uid: adminUid }, { after: 'invalid' }, function (err) {
+			socketTopics.loadMoreSortedTopics({ uid: adminUid }, { after: 'invalid' }, function (err) {
 				assert.equal(err.message, '[[error:invalid-data]]');
 				done();
 			});
@@ -934,7 +1073,7 @@ describe('Topic\'s', function () {
 		it('should load more unread topics', function (done) {
 			socketTopics.markUnread({ uid: adminUid }, tid, function (err) {
 				assert.ifError(err);
-				socketTopics.loadMoreUnreadTopics({ uid: adminUid }, { cid: topic.categoryId, after: 0, count: 10 }, function (err, data) {
+				socketTopics.loadMoreSortedTopics({ uid: adminUid }, { cid: topic.categoryId, after: 0, count: 10, sort: 'unread' }, function (err, data) {
 					assert.ifError(err);
 					assert(data);
 					assert(Array.isArray(data.topics));
@@ -944,7 +1083,7 @@ describe('Topic\'s', function () {
 		});
 
 		it('should error with invalid data', function (done) {
-			socketTopics.loadMoreRecentTopics({ uid: adminUid }, { after: 'invalid' }, function (err) {
+			socketTopics.loadMoreSortedTopics({ uid: adminUid }, { after: 'invalid' }, function (err) {
 				assert.equal(err.message, '[[error:invalid-data]]');
 				done();
 			});
@@ -952,7 +1091,7 @@ describe('Topic\'s', function () {
 
 
 		it('should load more recent topics', function (done) {
-			socketTopics.loadMoreRecentTopics({ uid: adminUid }, { cid: topic.categoryId, after: 0, count: 10 }, function (err, data) {
+			socketTopics.loadMoreSortedTopics({ uid: adminUid }, { cid: topic.categoryId, after: 0, count: 10, sort: 'recent' }, function (err, data) {
 				assert.ifError(err);
 				assert(data);
 				assert(Array.isArray(data.topics));
@@ -981,7 +1120,7 @@ describe('Topic\'s', function () {
 		var tid1;
 		var tid3;
 		before(function (done) {
-			async.parallel({
+			async.series({
 				topic1: function (next) {
 					topics.post({ uid: adminUid, tags: ['nodebb'], title: 'topic title 1', content: 'topic 1 content', cid: topic.categoryId }, next);
 				},
@@ -1063,14 +1202,12 @@ describe('Topic\'s', function () {
 			});
 		});
 
-
 		it('should fail with invalid data', function (done) {
 			socketTopics.markAsRead({ uid: 0 }, null, function (err) {
 				assert.equal(err.message, '[[error:invalid-data]]');
 				done();
 			});
 		});
-
 
 		it('should mark topic read', function (done) {
 			socketTopics.markAsRead({ uid: adminUid }, [tid], function (err) {
@@ -1156,7 +1293,6 @@ describe('Topic\'s', function () {
 			});
 		});
 
-
 		it('should fail with invalid data', function (done) {
 			socketTopics.markAsUnreadForAll({ uid: adminUid }, null, function (err) {
 				assert.equal(err.message, '[[error:invalid-tid]]');
@@ -1211,6 +1347,95 @@ describe('Topic\'s', function () {
 				done();
 			});
 		});
+
+		it('should not return topics in category you cant read', function (done) {
+			var privateCid;
+			var privateTid;
+			async.waterfall([
+				function (next) {
+					categories.create({
+						name: 'private category',
+						description: 'private category',
+					}, next);
+				},
+				function (category, next) {
+					privateCid = category.cid;
+					privileges.categories.rescind(['read'], category.cid, 'registered-users', next);
+				},
+				function (next) {
+					topics.post({ uid: adminUid, title: 'topic in private category', content: 'registered-users cant see this', cid: privateCid }, next);
+				},
+				function (data, next) {
+					privateTid = data.topicData.tid;
+					topics.getUnreadTids({ uid: uid }, next);
+				},
+				function (unreadTids, next) {
+					unreadTids = unreadTids.map(String);
+					assert(!unreadTids.includes(String(privateTid)));
+					next();
+				},
+			], done);
+		});
+
+		it('should not return topics in category you ignored/not watching', function (done) {
+			var ignoredCid;
+			var tid;
+			async.waterfall([
+				function (next) {
+					categories.create({
+						name: 'ignored category',
+						description: 'ignored category',
+					}, next);
+				},
+				function (category, next) {
+					ignoredCid = category.cid;
+					privileges.categories.rescind(['read'], category.cid, 'registered-users', next);
+				},
+				function (next) {
+					topics.post({ uid: adminUid, title: 'topic in private category', content: 'registered-users cant see this', cid: ignoredCid }, next);
+				},
+				function (data, next) {
+					tid = data.topicData.tid;
+					User.ignoreCategory(uid, ignoredCid, next);
+				},
+				function (next) {
+					topics.getUnreadTids({ uid: uid }, next);
+				},
+				function (unreadTids, next) {
+					unreadTids = unreadTids.map(String);
+					assert(!unreadTids.includes(String(tid)));
+					next();
+				},
+			], done);
+		});
+
+		it('should not return topic as unread if new post is from blocked user', function (done) {
+			var blockedUid;
+			var topic;
+			async.waterfall([
+				function (next) {
+					topics.post({ uid: adminUid, title: 'will not get as unread', content: 'not unread', cid: categoryObj.cid }, next);
+				},
+				function (result, next) {
+					topic = result.topicData;
+					User.create({ username: 'blockedunread' }, next);
+				},
+				function (uid, next) {
+					blockedUid = uid;
+					User.blocks.add(uid, adminUid, next);
+				},
+				function (next) {
+					topics.reply({ uid: blockedUid, content: 'post from blocked user', tid: topic.tid }, next);
+				},
+				function (result, next) {
+					topics.getUnreadTids({ cid: 0, uid: adminUid }, next);
+				},
+				function (unreadTids, next) {
+					assert(!unreadTids.includes(topic.tid));
+					User.blocks.remove(blockedUid, adminUid, next);
+				},
+			], done);
+		});
 	});
 
 	describe('tags', function () {
@@ -1218,14 +1443,14 @@ describe('Topic\'s', function () {
 		var socketAdmin = require('../src/socket.io/admin');
 
 		before(function (done) {
-			async.parallel({
-				topic1: function (next) {
+			async.series([
+				function (next) {
 					topics.post({ uid: adminUid, tags: ['php', 'nosql', 'psql', 'nodebb'], title: 'topic title 1', content: 'topic 1 content', cid: topic.categoryId }, next);
 				},
-				topic2: function (next) {
+				function (next) {
 					topics.post({ uid: adminUid, tags: ['javascript', 'mysql', 'python', 'nodejs'], title: 'topic title 2', content: 'topic 2 content', cid: topic.categoryId }, next);
 				},
-			}, function (err) {
+			], function (err) {
 				assert.ifError(err);
 				done();
 			});
@@ -1386,7 +1611,7 @@ describe('Topic\'s', function () {
 		});
 
 		it('should rename tags', function (done) {
-			async.parallel({
+			async.series({
 				topic1: function (next) {
 					topics.post({ uid: adminUid, tags: ['plugins'], title: 'topic tagged with plugins', content: 'topic 1 content', cid: topic.categoryId }, next);
 				},
@@ -1636,7 +1861,7 @@ describe('Topic\'s', function () {
 			});
 		});
 
-		it('should get teasers with first posts', function (done) {
+		it('should get teasers with last posts', function (done) {
 			meta.config.teaserPost = 'last-post';
 			topics.reply({ uid: adminUid, content: 'reply 1 content', tid: topic1.topicData.tid }, function (err, result) {
 				assert.ifError(err);
@@ -1676,6 +1901,29 @@ describe('Topic\'s', function () {
 				assert.equal(teaser.content, 'content 2');
 				done();
 			});
+		});
+
+		it('should not return teaser if user is blocked', function (done) {
+			var blockedUid;
+			async.waterfall([
+				function (next) {
+					User.create({ username: 'blocked' }, next);
+				},
+				function (uid, next) {
+					blockedUid = uid;
+					User.blocks.add(uid, adminUid, next);
+				},
+				function (next) {
+					topics.reply({ uid: blockedUid, content: 'post from blocked user', tid: topic2.topicData.tid }, next);
+				},
+				function (result, next) {
+					topics.getTeaser(topic2.topicData.tid, adminUid, next);
+				},
+				function (teaser, next) {
+					assert.equal(teaser.content, 'content 2');
+					User.blocks.remove(blockedUid, adminUid, next);
+				},
+			], done);
 		});
 	});
 
@@ -1729,8 +1977,8 @@ describe('Topic\'s', function () {
 						var tags = result.topic.tags.map(function (tag) {
 							return tag.value;
 						});
-						assert(tags.indexOf('tag1') !== -1);
-						assert(tags.indexOf('tag2') !== -1);
+						assert(tags.includes('tag1'));
+						assert(tags.includes('tag2'));
 						done();
 					});
 				});

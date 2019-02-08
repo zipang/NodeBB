@@ -7,6 +7,7 @@ var validator = require('validator');
 var meta = require('../meta');
 var user = require('../user');
 var plugins = require('../plugins');
+var privileges = require('../privileges');
 var helpers = require('./helpers');
 
 var Controllers = module.exports;
@@ -45,8 +46,8 @@ Controllers.reset = function (req, res, next) {
 			valid: valid,
 			displayExpiryNotice: req.session.passwordExpired,
 			code: code,
-			minimumPasswordLength: parseInt(meta.config.minimumPasswordLength, 10),
-			minimumPasswordStrength: parseInt(meta.config.minimumPasswordStrength, 10),
+			minimumPasswordLength: meta.config.minimumPasswordLength,
+			minimumPasswordStrength: meta.config.minimumPasswordStrength,
 			breadcrumbs: helpers.buildBreadcrumbs([
 				{
 					text: '[[reset_password:reset_password]]',
@@ -92,7 +93,7 @@ Controllers.login = function (req, res, next) {
 	var registrationType = meta.config.registrationType || 'normal';
 
 	var allowLoginWith = (meta.config.allowLoginWith || 'username-email');
-	var returnTo = (req.headers['x-return-to'] || '').replace(nconf.get('base_url'), '');
+	var returnTo = (req.headers['x-return-to'] || '').replace(nconf.get('base_url') + nconf.get('relative_path'), '');
 
 	var errorText;
 	if (req.query.error === 'csrf-invalid') {
@@ -107,7 +108,6 @@ Controllers.login = function (req, res, next) {
 
 	data.alternate_logins = loginStrategies.length > 0;
 	data.authentication = loginStrategies;
-	data.allowLocalLogin = parseInt(meta.config.allowLocalLogin, 10) === 1 || parseInt(req.query.local, 10) === 1;
 	data.allowRegistration = registrationType === 'normal' || registrationType === 'admin-approval' || registrationType === 'admin-approval-ip';
 	data.allowLoginWith = '[[login:' + allowLoginWith + ']]';
 	data.breadcrumbs = helpers.buildBreadcrumbs([{
@@ -116,26 +116,33 @@ Controllers.login = function (req, res, next) {
 	data.error = req.flash('error')[0] || errorText;
 	data.title = '[[pages:login]]';
 
-	if (!data.allowLocalLogin && !data.allowRegistration && data.alternate_logins && data.authentication.length === 1) {
-		if (res.locals.isAPI) {
-			return helpers.redirect(res, {
-				external: nconf.get('relative_path') + data.authentication[0].url,
-			});
+	privileges.global.canGroup('local:login', 'registered-users', function (err, hasLoginPrivilege) {
+		if (err) {
+			return next(err);
 		}
-		return res.redirect(nconf.get('relative_path') + data.authentication[0].url);
-	}
-	if (req.loggedIn) {
-		user.getUserFields(req.uid, ['username', 'email'], function (err, user) {
-			if (err) {
-				return next(err);
+
+		data.allowLocalLogin = hasLoginPrivilege || parseInt(req.query.local, 10) === 1;
+		if (!data.allowLocalLogin && !data.allowRegistration && data.alternate_logins && data.authentication.length === 1) {
+			if (res.locals.isAPI) {
+				return helpers.redirect(res, {
+					external: nconf.get('relative_path') + data.authentication[0].url,
+				});
 			}
-			data.username = allowLoginWith === 'email' ? user.email : user.username;
-			data.alternate_logins = false;
+			return res.redirect(nconf.get('relative_path') + data.authentication[0].url);
+		}
+		if (req.loggedIn) {
+			user.getUserFields(req.uid, ['username', 'email'], function (err, user) {
+				if (err) {
+					return next(err);
+				}
+				data.username = allowLoginWith === 'email' ? user.email : user.username;
+				data.alternate_logins = false;
+				res.render('login', data);
+			});
+		} else {
 			res.render('login', data);
-		});
-	} else {
-		res.render('login', data);
-	}
+		}
+	});
 };
 
 Controllers.register = function (req, res, next) {
@@ -174,10 +181,10 @@ Controllers.register = function (req, res, next) {
 
 			data.authentication = loginStrategies;
 
-			data.minimumUsernameLength = parseInt(meta.config.minimumUsernameLength, 10);
-			data.maximumUsernameLength = parseInt(meta.config.maximumUsernameLength, 10);
-			data.minimumPasswordLength = parseInt(meta.config.minimumPasswordLength, 10);
-			data.minimumPasswordStrength = parseInt(meta.config.minimumPasswordStrength || 1, 10);
+			data.minimumUsernameLength = meta.config.minimumUsernameLength;
+			data.maximumUsernameLength = meta.config.maximumUsernameLength;
+			data.minimumPasswordLength = meta.config.minimumPasswordLength;
+			data.minimumPasswordStrength = meta.config.minimumPasswordStrength;
 			data.termsOfUse = termsOfUse.postData.content;
 			data.breadcrumbs = helpers.buildBreadcrumbs([{
 				text: '[[register:register]]',
@@ -206,8 +213,9 @@ Controllers.registerInterstitial = function (req, res, next) {
 		function (data, next) {
 			if (!data.interstitials.length) {
 				// No interstitials, redirect to home
+				const returnTo = req.session.returnTo || req.session.registration.returnTo;
 				delete req.session.registration;
-				return res.redirect(nconf.get('relative_path') + '/');
+				return helpers.redirect(res, returnTo || '/');
 			}
 			var renders = data.interstitials.map(function (interstitial) {
 				return async.apply(req.app.render.bind(req.app), interstitial.template, interstitial.data || {});
@@ -245,6 +253,7 @@ Controllers.robots = function (req, res) {
 		res.send('User-agent: *\n' +
 			'Disallow: ' + nconf.get('relative_path') + '/admin/\n' +
 			'Disallow: ' + nconf.get('relative_path') + '/reset/\n' +
+			'Disallow: ' + nconf.get('relative_path') + '/compose\n' +
 			'Sitemap: ' + nconf.get('url') + '/sitemap.xml');
 	}
 };

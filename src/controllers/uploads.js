@@ -25,7 +25,7 @@ uploadsController.upload = function (req, res, filesIterator) {
 		files = files[0];
 	}
 
-	async.map(files, filesIterator, function (err, images) {
+	async.mapSeries(files, filesIterator, function (err, images) {
 		deleteTempFiles(files);
 
 		if (err) {
@@ -56,6 +56,9 @@ function uploadAsImage(req, uploadedFile, callback) {
 			if (!canUpload) {
 				return next(new Error('[[error:no-privileges]]'));
 			}
+			image.checkDimensions(uploadedFile.path, next);
+		},
+		function (next) {
 			if (plugins.hasListeners('filter:uploadImage')) {
 				return plugins.fireHook('filter:uploadImage', {
 					image: uploadedFile,
@@ -68,7 +71,7 @@ function uploadAsImage(req, uploadedFile, callback) {
 			uploadsController.uploadFile(req.uid, uploadedFile, next);
 		},
 		function (fileObj, next) {
-			if (parseInt(meta.config.maximumImageWidth, 10) === 0) {
+			if (meta.config.resizeImageWidth === 0 || meta.config.resizeImageWidthThreshold === 0) {
 				return next(null, fileObj);
 			}
 
@@ -89,7 +92,7 @@ function uploadAsFile(req, uploadedFile, callback) {
 			if (!canUpload) {
 				return next(new Error('[[error:no-privileges]]'));
 			}
-			if (parseInt(meta.config.allowFileUploads, 10) !== 1) {
+			if (!meta.config.allowFileUploads) {
 				return next(new Error('[[error:uploads-are-disabled]]'));
 			}
 			uploadsController.uploadFile(req.uid, uploadedFile, next);
@@ -109,29 +112,20 @@ function resizeImage(fileObj, callback) {
 			image.size(fileObj.path, next);
 		},
 		function (imageData, next) {
-			if (imageData.width < (parseInt(meta.config.maximumImageWidth, 10) || 760)) {
+			if (imageData.width < meta.config.resizeImageWidthThreshold || meta.config.resizeImageWidth > meta.config.resizeImageWidthThreshold) {
 				return callback(null, fileObj);
 			}
 
-			var dirname = path.dirname(fileObj.path);
-			var extname = path.extname(fileObj.path);
-			var basename = path.basename(fileObj.path, extname);
-
 			image.resizeImage({
 				path: fileObj.path,
-				target: path.join(dirname, basename + '-resized' + extname),
-				extension: extname,
-				width: parseInt(meta.config.maximumImageWidth, 10) || 760,
-				quality: parseInt(meta.config.resizeImageQuality, 10) || 60,
+				target: file.appendToFileName(fileObj.path, '-resized'),
+				width: meta.config.resizeImageWidth,
+				quality: meta.config.resizeImageQuality,
 			}, next);
 		},
 		function (next) {
 			// Return the resized version to the composer/postData
-			var dirname = path.dirname(fileObj.url);
-			var extname = path.extname(fileObj.url);
-			var basename = path.basename(fileObj.url, extname);
-
-			fileObj.url = dirname + '/' + basename + '-resized' + extname;
+			fileObj.url = file.appendToFileName(fileObj.url, '-resized');
 
 			next(null, fileObj);
 		},
@@ -139,7 +133,7 @@ function resizeImage(fileObj, callback) {
 }
 
 uploadsController.uploadThumb = function (req, res, next) {
-	if (parseInt(meta.config.allowTopicsThumbnail, 10) !== 1) {
+	if (!meta.config.allowTopicsThumbnail) {
 		deleteTempFiles(req.files.files);
 		return next(new Error('[[error:topic-thumbnails-are-disabled]]'));
 	}
@@ -154,12 +148,10 @@ uploadsController.uploadThumb = function (req, res, next) {
 				file.isFileTypeAllowed(uploadedFile.path, next);
 			},
 			function (next) {
-				var size = parseInt(meta.config.topicThumbSize, 10) || 120;
 				image.resizeImage({
 					path: uploadedFile.path,
-					extension: path.extname(uploadedFile.name),
-					width: size,
-					height: size,
+					width: meta.config.topicThumbSize,
+					height: meta.config.topicThumbSize,
 				}, next);
 			},
 			function (next) {
@@ -176,31 +168,6 @@ uploadsController.uploadThumb = function (req, res, next) {
 	}, next);
 };
 
-uploadsController.uploadGroupCover = function (uid, uploadedFile, callback) {
-	if (plugins.hasListeners('filter:uploadImage')) {
-		return plugins.fireHook('filter:uploadImage', {
-			image: uploadedFile,
-			uid: uid,
-		}, callback);
-	}
-
-	if (plugins.hasListeners('filter:uploadFile')) {
-		return plugins.fireHook('filter:uploadFile', {
-			file: uploadedFile,
-			uid: uid,
-		}, callback);
-	}
-
-	async.waterfall([
-		function (next) {
-			file.isFileTypeAllowed(uploadedFile.path, next);
-		},
-		function (next) {
-			saveFileToLocal(uid, uploadedFile, next);
-		},
-	], callback);
-};
-
 uploadsController.uploadFile = function (uid, uploadedFile, callback) {
 	if (plugins.hasListeners('filter:uploadFile')) {
 		return plugins.fireHook('filter:uploadFile', {
@@ -213,14 +180,14 @@ uploadsController.uploadFile = function (uid, uploadedFile, callback) {
 		return callback(new Error('[[error:invalid-file]]'));
 	}
 
-	if (uploadedFile.size > parseInt(meta.config.maximumFileSize, 10) * 1024) {
+	if (uploadedFile.size > meta.config.maximumFileSize * 1024) {
 		return callback(new Error('[[error:file-too-big, ' + meta.config.maximumFileSize + ']]'));
 	}
 
 	var allowed = file.allowedExtensions();
 
 	var extension = path.extname(uploadedFile.name).toLowerCase();
-	if (allowed.length > 0 && (!extension || extension === '.' || allowed.indexOf(extension) === -1)) {
+	if (allowed.length > 0 && (!extension || extension === '.' || !allowed.includes(extension))) {
 		return callback(new Error('[[error:invalid-file-type, ' + allowed.join('&#44; ') + ']]'));
 	}
 

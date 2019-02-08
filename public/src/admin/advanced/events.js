@@ -13,6 +13,22 @@ define('admin/advanced/events', function () {
 				$('.events-list').empty();
 			});
 		});
+
+		$('.delete-event').on('click', function () {
+			var parentEl = $(this).parents('[data-eid]');
+			var eid = parentEl.attr('data-eid');
+			socket.emit('admin.deleteEvents', [eid], function (err) {
+				if (err) {
+					return app.alertError(err.message);
+				}
+				parentEl.remove();
+			});
+		});
+
+		$('#filter').on('change', function () {
+			var filter = $(this).val();
+			ajaxify.go('admin/advanced/events' + (filter ? '?filter=' + filter : ''));
+		});
 	};
 
 	return Events;

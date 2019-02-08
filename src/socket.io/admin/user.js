@@ -2,6 +2,7 @@
 
 var async = require('async');
 var validator = require('validator');
+var winston = require('winston');
 
 var db = require('../../database');
 var groups = require('../../groups');
@@ -23,7 +24,7 @@ User.makeAdmins = function (socket, uids, callback) {
 		},
 		function (userData, next) {
 			for (var i = 0; i < userData.length; i += 1) {
-				if (userData[i] && parseInt(userData[i].banned, 10) === 1) {
+				if (userData[i] && userData[i].banned) {
 					return callback(new Error('[[error:cant-make-banned-users-admin]]'));
 				}
 			}
@@ -76,9 +77,7 @@ User.validateEmail = function (socket, uids, callback) {
 		return callback(new Error('[[error:invalid-data]]'));
 	}
 
-	uids = uids.filter(function (uid) {
-		return parseInt(uid, 10);
-	});
+	uids = uids.filter(uid => parseInt(uid, 10));
 
 	async.waterfall([
 		function (next) {
@@ -97,7 +96,7 @@ User.sendValidationEmail = function (socket, uids, callback) {
 		return callback(new Error('[[error:invalid-data]]'));
 	}
 
-	if (parseInt(meta.config.requireEmailConfirmation, 10) !== 1) {
+	if (!meta.config.requireEmailConfirmation) {
 		return callback(new Error('[[error:email-confirmations-are-disabled]]'));
 	}
 
@@ -111,9 +110,7 @@ User.sendPasswordResetEmail = function (socket, uids, callback) {
 		return callback(new Error('[[error:invalid-data]]'));
 	}
 
-	uids = uids.filter(function (uid) {
-		return parseInt(uid, 10);
-	});
+	uids = uids.filter(uid => parseInt(uid, 10));
 
 	async.each(uids, function (uid, next) {
 		async.waterfall([
@@ -146,37 +143,48 @@ function deleteUsers(socket, uids, method, callback) {
 	if (!Array.isArray(uids)) {
 		return callback(new Error('[[error:invalid-data]]'));
 	}
+	async.waterfall([
+		function (next) {
+			groups.isMembers(uids, 'administrators', next);
+		},
+		function (isMembers, next) {
+			if (isMembers.includes(true)) {
+				return callback(new Error('[[error:cant-delete-other-admins]]'));
+			}
 
-	async.each(uids, function (uid, next) {
-		async.waterfall([
-			function (next) {
-				user.isAdministrator(uid, next);
-			},
-			function (isAdmin, next) {
-				if (isAdmin) {
-					return next(new Error('[[error:cant-delete-other-admins]]'));
-				}
+			callback();
 
-				method(uid, next);
-			},
-			function (next) {
-				events.log({
-					type: 'user-delete',
-					uid: socket.uid,
-					targetUid: uid,
-					ip: socket.ip,
-				}, next);
-			},
-			function (next) {
-				plugins.fireHook('action:user.delete', {
-					callerUid: socket.uid,
-					uid: uid,
-					ip: socket.ip,
-				});
-				next();
-			},
-		], next);
-	}, callback);
+			async.each(uids, function (uid, next) {
+				async.waterfall([
+					function (next) {
+						method(uid, next);
+					},
+					function (userData, next) {
+						events.log({
+							type: 'user-delete',
+							uid: socket.uid,
+							targetUid: uid,
+							ip: socket.ip,
+							username: userData.username,
+							email: userData.email,
+						}, next);
+					},
+					function (next) {
+						plugins.fireHook('action:user.delete', {
+							callerUid: socket.uid,
+							uid: uid,
+							ip: socket.ip,
+						});
+						next();
+					},
+				], next);
+			}, next);
+		},
+	], function (err) {
+		if (err) {
+			winston.error(err);
+		}
+	});
 }
 
 User.search = function (socket, data, callback) {
@@ -195,9 +203,7 @@ User.search = function (socket, data, callback) {
 				return callback(null, searchData);
 			}
 
-			var uids = searchData.users.map(function (user) {
-				return user && user.uid;
-			});
+			var uids = searchData.users.map(user => user && user.uid);
 
 			user.getUsersFields(uids, ['email', 'flags', 'lastonline', 'joindate'], next);
 		},

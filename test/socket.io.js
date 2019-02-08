@@ -42,7 +42,7 @@ describe('socket.io', function () {
 			adminUid = data[0];
 			regularUid = data[1];
 			cid = data[2].cid;
-			groups.resetCache();
+
 			groups.join('administrators', data[0], done);
 		});
 	});
@@ -198,11 +198,13 @@ describe('socket.io', function () {
 		it('should delete users', function (done) {
 			socketAdmin.user.deleteUsers({ uid: adminUid }, [uid], function (err) {
 				assert.ifError(err);
-				groups.isMember(uid, 'registered-users', function (err, isMember) {
-					assert.ifError(err);
-					assert(!isMember);
-					done();
-				});
+				setTimeout(function () {
+					groups.isMember(uid, 'registered-users', function (err, isMember) {
+						assert.ifError(err);
+						assert(!isMember);
+						done();
+					});
+				}, 500);
 			});
 		});
 
@@ -466,6 +468,7 @@ describe('socket.io', function () {
 	});
 
 	it('should toggle plugin install', function (done) {
+		this.timeout(0);
 		socketAdmin.plugins.toggleInstall({ uid: adminUid }, { id: 'nodebb-plugin-location-to-map', version: 'latest' }, function (err, data) {
 			assert.ifError(err);
 			assert.equal(data.name, 'nodebb-plugin-location-to-map');
@@ -499,6 +502,7 @@ describe('socket.io', function () {
 	});
 
 	it('should upgrade plugin', function (done) {
+		this.timeout(0);
 		socketAdmin.plugins.upgrade({ uid: adminUid }, { id: 'nodebb-plugin-location-to-map', version: 'latest' }, function (err) {
 			assert.ifError(err);
 			done();
@@ -572,6 +576,20 @@ describe('socket.io', function () {
 				assert.ifError(err);
 				assert(!exists);
 				done();
+			});
+		});
+	});
+
+	it('should delete a single event', function (done) {
+		db.getSortedSetRevRange('events:time', 0, 0, function (err, eids) {
+			assert.ifError(err);
+			socketAdmin.deleteEvents({ uid: adminUid }, eids, function (err) {
+				assert.ifError(err);
+				db.isSortedSetMembers('events:time', eids, function (err, isMembers) {
+					assert.ifError(err);
+					assert(!isMembers.includes(true));
+					done();
+				});
 			});
 		});
 	});

@@ -39,6 +39,9 @@ module.exports = function (SocketPosts) {
 					canDelete: function (next) {
 						privileges.posts.canDelete(data.pid, socket.uid, next);
 					},
+					canPurge: function (next) {
+						privileges.posts.canPurge(data.pid, socket.uid, next);
+					},
 					canFlag: function (next) {
 						privileges.posts.canFlag(data.pid, socket.uid, next);
 					},
@@ -57,11 +60,11 @@ module.exports = function (SocketPosts) {
 			function (results, next) {
 				var posts = results.posts;
 				posts.tools = results.tools.tools;
-				posts.deleted = parseInt(posts.deleted, 10) === 1;
 				posts.bookmarked = results.bookmarked;
-				posts.selfPost = socket.uid && socket.uid === parseInt(posts.uid, 10);
+				posts.selfPost = socket.uid && socket.uid === posts.uid;
 				posts.display_edit_tools = results.canEdit.flag;
 				posts.display_delete_tools = results.canDelete.flag;
+				posts.display_purge_tools = results.canPurge;
 				posts.display_flag_tools = socket.uid && !posts.selfPost && results.canFlag.flag;
 				posts.display_moderator_tools = posts.display_edit_tools || posts.display_delete_tools;
 				posts.display_move_tools = results.isAdmin || results.isModerator;
@@ -104,6 +107,7 @@ module.exports = function (SocketPosts) {
 					type: 'post-delete',
 					uid: socket.uid,
 					pid: data.pid,
+					tid: postData.tid,
 					ip: socket.ip,
 				});
 
@@ -139,6 +143,7 @@ module.exports = function (SocketPosts) {
 					type: 'post-restore',
 					uid: socket.uid,
 					pid: data.pid,
+					tid: postData.tid,
 					ip: socket.ip,
 				});
 
@@ -200,6 +205,7 @@ module.exports = function (SocketPosts) {
 					uid: socket.uid,
 					pid: data.pid,
 					ip: socket.ip,
+					tid: postData.tid,
 					title: String(topicData.title),
 				}, next);
 			},
@@ -219,9 +225,9 @@ module.exports = function (SocketPosts) {
 				posts.getTopicFields(pid, ['tid', 'cid', 'deleted'], next);
 			},
 			function (topic, next) {
-				if (parseInt(topic.deleted, 10) !== 1 && command === 'delete') {
+				if (command === 'delete' && !topic.deleted) {
 					socketTopics.doTopicAction('delete', 'event:topic_deleted', socket, { tids: [topic.tid], cid: topic.cid }, next);
-				} else if (parseInt(topic.deleted, 10) === 1 && command === 'restore') {
+				} else if (command === 'restore' && topic.deleted) {
 					socketTopics.doTopicAction('restore', 'event:topic_restored', socket, { tids: [topic.tid], cid: topic.cid }, next);
 				} else {
 					setImmediate(next);
@@ -237,7 +243,7 @@ module.exports = function (SocketPosts) {
 			},
 			isLast: function (next) {
 				posts.getTopicFields(pid, ['postcount'], function (err, topic) {
-					next(err, topic ? parseInt(topic.postcount, 10) === 1 : false);
+					next(err, topic ? topic.postcount === 1 : false);
 				});
 			},
 		}, callback);

@@ -24,25 +24,31 @@ module.exports = function (User) {
 			return callback(new Error('[[error:ban-expiry-missing]]'));
 		}
 
+		const banKey = 'uid:' + uid + ':ban:' + now;
+		var banData = {
+			uid: uid,
+			timestamp: now,
+			expire: until > now ? until : 0,
+		};
+		if (reason) {
+			banData.reason = reason;
+		}
 		var tasks = [
 			async.apply(User.setUserField, uid, 'banned', 1),
 			async.apply(db.sortedSetAdd, 'users:banned', now, uid),
-			async.apply(db.sortedSetAdd, 'uid:' + uid + ':bans', now, until),
+			async.apply(db.sortedSetAdd, 'uid:' + uid + ':bans:timestamp', now, banKey),
+			async.apply(db.setObject, banKey, banData),
 		];
 
-		if (until > 0 && now < until) {
+		if (until > now) {
 			tasks.push(async.apply(db.sortedSetAdd, 'users:banned:expire', until, uid));
 			tasks.push(async.apply(User.setUserField, uid, 'banned:expire', until));
 		} else {
 			until = 0;
 		}
 
-		if (reason) {
-			tasks.push(async.apply(db.sortedSetAdd, 'banned:' + uid + ':reasons', now, reason));
-		}
-
 		async.series(tasks, function (err) {
-			callback(err);
+			callback(err, banData);
 		});
 	};
 
@@ -58,16 +64,19 @@ module.exports = function (User) {
 	};
 
 	User.isBanned = function (uid, callback) {
+		if (parseInt(uid, 10) <= 0) {
+			return setImmediate(callback, null, false);
+		}
 		async.waterfall([
 			async.apply(User.getUserFields, uid, ['banned', 'banned:expire']),
 			function (userData, next) {
-				var banned = userData && parseInt(userData.banned, 10) === 1;
+				var banned = userData && userData.banned;
 				if (!banned) {
 					return next(null, banned);
 				}
 
 				// If they are banned, see if the ban has expired
-				var stillBanned = !parseInt(userData['banned:expire'], 10) || Date.now() < parseInt(userData['banned:expire'], 10);
+				var stillBanned = !userData['banned:expire'] || Date.now() < userData['banned:expire'];
 
 				if (stillBanned) {
 					return next(null, true);
@@ -84,12 +93,21 @@ module.exports = function (User) {
 	};
 
 	User.getBannedReason = function (uid, callback) {
+		if (parseInt(uid, 10) <= 0) {
+			return setImmediate(callback, null, '');
+		}
 		async.waterfall([
 			function (next) {
-				db.getSortedSetRevRange('banned:' + uid + ':reasons', 0, 0, next);
+				db.getSortedSetRevRange('uid:' + uid + ':bans:timestamp', 0, 0, next);
 			},
-			function (reasons, next) {
-				next(null, reasons.length ? reasons[0] : '');
+			function (keys, next) {
+				if (!keys.length) {
+					return callback(null, '');
+				}
+				db.getObject(keys[0], next);
+			},
+			function (banObj, next) {
+				next(null, banObj && banObj.reason ? banObj.reason : '');
 			},
 		], callback);
 	};

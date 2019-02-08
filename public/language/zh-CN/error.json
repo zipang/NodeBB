@@ -78,6 +78,7 @@
     "still-uploading": "请等待上传完成",
     "file-too-big": "上传文件的大小限制为 %1 KB - 请缩减文件大小",
     "guest-upload-disabled": "未登录用户不允许上传",
+    "cors-error": "由于CORS配置错误，无法上传图片。",
     "already-bookmarked": "您已将此贴存为了书签",
     "already-unbookmarked": "您已取消了此贴的书签",
     "cant-ban-other-admins": "您不能封禁其他管理员！",
@@ -87,6 +88,7 @@
     "invalid-image-type": "无效的图像类型。允许的类型有：%1",
     "invalid-image-extension": "无效的图像扩展",
     "invalid-file-type": "无效文件格式，允许的格式有：%1",
+    "invalid-image-dimensions": "图片尺寸太大",
     "group-name-too-short": "群组名太短",
     "group-name-too-long": "群组名太长",
     "group-already-exists": "群组已存在",
@@ -118,7 +120,7 @@
     "chat-edit-duration-expired": "您只能在发布 %1 秒后修改聊天信息",
     "chat-delete-duration-expired": "您只能在发布 %1 秒后删除聊天信息",
     "chat-deleted-already": "聊天消息已经被删除",
-    "chat-restored'already": "聊天消息已经恢复",
+    "chat-restored-already": "This chat message has already been restored.",
     "already-voting-for-this-post": "您已为此帖回复投过票了。",
     "reputation-system-disabled": "声望系统已禁用。",
     "downvoting-disabled": "踩已被禁用",
@@ -151,5 +153,8 @@
     "cant-move-to-same-topic": "无法将帖子移动到相同的主题中！",
     "cannot-block-self": "您不能把自己屏蔽！",
     "cannot-block-privileged": "您不能屏蔽管理员或者全局版主",
+    "cannot-block-guest": "Guest are not able to block other users",
+    "already-blocked": "This user is already blocked",
+    "already-unblocked": "This user is already unblocked",
     "no-connection": "您的网络连接似乎存在问题"
 }

@@ -8,6 +8,7 @@ var querystring = require('querystring');
 var meta = require('../meta');
 var pagination = require('../pagination');
 var user = require('../user');
+var categories = require('../categories');
 var topics = require('../topics');
 var plugins = require('../plugins');
 var helpers = require('./helpers');
@@ -32,7 +33,11 @@ unreadController.get = function (req, res, next) {
 
 			async.parallel({
 				watchedCategories: function (next) {
-					helpers.getWatchedCategories(req.uid, cid, next);
+					if (plugins.hasListeners('filter:unread.categories')) {
+						plugins.fireHook('filter:unread.categories', { uid: req.uid, cid: cid }, next);
+					} else {
+						helpers.getCategoriesByStates(req.uid, cid, [categories.watchStates.watching], next);
+					}
 				},
 				settings: function (next) {
 					user.getSettings(req.uid, next);
@@ -53,12 +58,6 @@ unreadController.get = function (req, res, next) {
 				filter: filter,
 				cutoff: cutoff,
 			}, next);
-		},
-		function (data, next) {
-			user.blocks.filter(req.uid, data.topics, function (err, filtered) {
-				data.topics = filtered;
-				next(err, data);
-			});
 		},
 		function (data) {
 			data.title = meta.config.homePageTitle || '[[pages:home]]';

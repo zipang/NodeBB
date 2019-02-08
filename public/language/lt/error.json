@@ -78,6 +78,7 @@
     "still-uploading": "Prašome palaukti kol bus baigti visi kėlimai į serverį",
     "file-too-big": "Didžiausias įkelimo dydis yra %1 kB - prašome kelti mažesni failą",
     "guest-upload-disabled": "Failų įkėlimas svečiams išjungtas",
+    "cors-error": "Unable to upload image due to misconfigured CORS",
     "already-bookmarked": "Jūs jau turite žymekelį šiam įrašui",
     "already-unbookmarked": "Jūs jau nuėmėte žymeklį šiam įrašui",
     "cant-ban-other-admins": "Jūs negalite užblokuoti kitų administratorių!",
@@ -87,6 +88,7 @@
     "invalid-image-type": "Neteisingas vaizdo tipas. Leidžiami tipai :%1",
     "invalid-image-extension": "Neteisingas vaizdo plėtinys",
     "invalid-file-type": "Neteisingas failo tipas. Leidžiami tipai: %1",
+    "invalid-image-dimensions": "Image dimensions are too big",
     "group-name-too-short": "Grupės pavadinimas per trumpas",
     "group-name-too-long": "Grupės pavadinimas per ilgas",
     "group-already-exists": "Tokia grupė jau egzistuoja",
@@ -118,7 +120,7 @@
     "chat-edit-duration-expired": "Redaguoti susirašinėjimo žinutes galima tik %1 sekundę(-es/-ių) po paskelbimo",
     "chat-delete-duration-expired": "Trinti žinutes galima tik %1 sekundę(-es/-ių) po paskelbimo",
     "chat-deleted-already": "Ši žinutė buvo pašalinta",
-    "chat-restored'already": "Ši žinutė buvo atkurta",
+    "chat-restored-already": "This chat message has already been restored.",
     "already-voting-for-this-post": "Jūs jau balsavote už šį pranešimą.",
     "reputation-system-disabled": "Reputacijos sistema išjungta.",
     "downvoting-disabled": "Downvoting yra išjungtas",
@@ -151,5 +153,8 @@
     "cant-move-to-same-topic": "Negalima perkelti įrašo į tą pačią temą!",
     "cannot-block-self": "Savęs užblokuoti negalima!",
     "cannot-block-privileged": "Negalima blokuoti administratorių arba visuotinių moderatorių",
+    "cannot-block-guest": "Guest are not able to block other users",
+    "already-blocked": "This user is already blocked",
+    "already-unblocked": "This user is already unblocked",
     "no-connection": "Panašu, jog yra problema su jūsų interneto prieiga"
 }

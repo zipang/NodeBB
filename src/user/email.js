@@ -6,7 +6,6 @@ var nconf = require('nconf');
 
 var user = require('../user');
 var utils = require('../utils');
-var translator = require('../translator');
 var plugins = require('../plugins');
 var db = require('../database');
 var meta = require('../meta');
@@ -50,7 +49,7 @@ UserEmail.sendValidationEmail = function (uid, options, callback) {
 	var confirm_code = utils.generateUUID();
 	var confirm_link = nconf.get('url') + '/confirm/' + confirm_code;
 
-	var emailInterval = meta.config.hasOwnProperty('emailConfirmInterval') ? parseInt(meta.config.emailConfirmInterval, 10) : 10;
+	var emailInterval = meta.config.emailConfirmInterval;
 
 	async.waterfall([
 		function (next) {
@@ -100,24 +99,24 @@ UserEmail.sendValidationEmail = function (uid, options, callback) {
 		},
 		function (username, next) {
 			var title = meta.config.title || meta.config.browserTitle || 'NodeBB';
-			translator.translate('[[email:welcome-to, ' + title + ']]', meta.config.defaultLang, function (subject) {
-				var data = {
-					username: username,
-					confirm_link: confirm_link,
-					confirm_code: confirm_code,
+			var template = options.template || 'welcome';
 
-					subject: subject,
-					template: 'welcome',
-					uid: uid,
-				};
+			var data = {
+				username: username,
+				confirm_link: confirm_link,
+				confirm_code: confirm_code,
 
-				if (plugins.hasListeners('action:user.verify')) {
-					plugins.fireHook('action:user.verify', { uid: uid, data: data });
-					next();
-				} else {
-					emailer.send('welcome', uid, data, next);
-				}
-			});
+				subject: options.subject || '[[email:welcome-to, ' + title + ']]',
+				template: template,
+				uid: uid,
+			};
+
+			if (plugins.hasListeners('action:user.verify')) {
+				plugins.fireHook('action:user.verify', { uid: uid, data: data });
+				next();
+			} else {
+				emailer.send(template, uid, data, next);
+			}
 		},
 		function (next) {
 			next(null, confirm_code);
