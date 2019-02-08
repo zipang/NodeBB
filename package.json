@@ -67,6 +67,7 @@
     "mubsub": "^1.4.0",
     "mubsub-nbb": "^1.5.0",
     "nconf": "^0.10.0",
+    "nodebb-plugin-adsense": "^1.0.3",
     "nodebb-plugin-chats-global": "^1.0.0",
     "nodebb-plugin-composer-default": "6.0.29",
     "nodebb-plugin-dbsearch": "2.0.19",
