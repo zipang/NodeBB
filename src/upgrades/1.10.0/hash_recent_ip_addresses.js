@@ -1,15 +1,15 @@
 'use strict';
 
-var db = require('../../database');
-var batch = require('../../batch');
 
 var async = require('async');
 var crypto = require('crypto');
 var nconf = require('nconf');
+var batch = require('../../batch');
+var db = require('../../database');
 
 module.exports = {
 	name: 'Hash all IP addresses stored in Recent IPs zset',
-	timestamp: Date.UTC(2017, 5, 22),
+	timestamp: Date.UTC(2018, 5, 22),
 	method: function (callback) {
 		const progress = this.progress;
 		var hashed = /[a-f0-9]{32}/;

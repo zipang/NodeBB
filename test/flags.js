@@ -16,7 +16,6 @@ var Meta = require('../src/meta');
 
 describe('Flags', function () {
 	before(function (done) {
-		Groups.resetCache();
 		// Create some stuff to flag
 		async.waterfall([
 			async.apply(User.create, { username: 'testUser', password: 'abcdef', email: 'b@c.com' }),
@@ -400,6 +399,43 @@ describe('Flags', function () {
 					assert.strictEqual('[[error:not-enough-reputation-to-flag]]', err.message);
 					Meta.configs.set('min:rep:flag', 0, done);
 				});
+			});
+		});
+
+		it('should not error if user blocked target', function (done) {
+			var SocketFlags = require('../src/socket.io/flags.js');
+			var reporterUid;
+			var reporteeUid;
+			async.waterfall([
+				function (next) {
+					User.create({ username: 'reporter' }, next);
+				},
+				function (uid, next) {
+					reporterUid = uid;
+					User.create({ username: 'reportee' }, next);
+				},
+				function (uid, next) {
+					reporteeUid = uid;
+					User.blocks.add(reporteeUid, reporterUid, next);
+				},
+				function (next) {
+					Topics.post({
+						cid: 1,
+						uid: reporteeUid,
+						title: 'Another topic',
+						content: 'This is flaggable content',
+					}, next);
+				},
+				function (data, next) {
+					SocketFlags.create({ uid: reporterUid }, { type: 'post', id: data.postData.pid, reason: 'spam' }, next);
+				},
+			], done);
+		});
+
+		it('should send back error if reporter does not exist', function (done) {
+			Flags.validate({ uid: 123123123, id: 1, type: 'post' }, function (err) {
+				assert.equal(err.message, '[[error:no-user]]');
+				done();
 			});
 		});
 	});

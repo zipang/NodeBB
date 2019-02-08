@@ -7,8 +7,9 @@ var meta = require('../meta');
 var groups = require('../groups');
 var user = require('../user');
 var helpers = require('./helpers');
+var pagination = require('../pagination');
 
-var groupsController = {};
+var groupsController = module.exports;
 
 groupsController.list = function (req, res, next) {
 	var sort = req.query.sort || 'alpha';
@@ -38,7 +39,7 @@ groupsController.getGroupsFromSet = function (uid, sort, start, stop, callback) 
 		function (groupsData, next) {
 			next(null, {
 				groups: groupsData,
-				allowGroupCreation: parseInt(meta.config.allowGroupCreation, 10) === 1,
+				allowGroupCreation: meta.config.allowGroupCreation,
 				nextStart: stop + 1,
 			});
 		},
@@ -105,7 +106,7 @@ groupsController.details = function (req, res, callback) {
 			results.group.isOwner = results.group.isOwner || results.isAdmin || (results.isGlobalMod && !results.group.system);
 			results.title = '[[pages:group, ' + results.group.displayName + ']]';
 			results.breadcrumbs = helpers.buildBreadcrumbs([{ text: '[[pages:groups]]', url: '/groups' }, { text: results.group.displayName }]);
-			results.allowPrivateGroups = parseInt(meta.config.allowPrivateGroups, 10) === 1;
+			results.allowPrivateGroups = meta.config.allowPrivateGroups;
 
 			res.render('groups/details', results);
 		},
@@ -113,7 +114,12 @@ groupsController.details = function (req, res, callback) {
 };
 
 groupsController.members = function (req, res, callback) {
+	var page = parseInt(req.query.page, 10) || 1;
+	var usersPerPage = 50;
+	var start = Math.max(0, (page - 1) * usersPerPage);
+	var stop = start + usersPerPage - 1;
 	var groupName;
+	var groupData;
 	async.waterfall([
 		function (next) {
 			groups.getGroupNameByGroupSlug(req.params.slug, next);
@@ -127,14 +133,16 @@ groupsController.members = function (req, res, callback) {
 				isAdminOrGlobalMod: async.apply(user.isAdminOrGlobalMod, req.uid),
 				isMember: async.apply(groups.isMember, req.uid, groupName),
 				isHidden: async.apply(groups.isHidden, groupName),
+				groupData: async.apply(groups.getGroupData, groupName),
 			}, next);
 		},
 		function (results, next) {
 			if (results.isHidden && !results.isMember && !results.isAdminOrGlobalMod) {
 				return callback();
 			}
+			groupData = results.groupData;
 
-			user.getUsersFromSet('group:' + groupName + ':members', req.uid, 0, 49, next);
+			user.getUsersFromSet('group:' + groupName + ':members', req.uid, start, stop, next);
 		},
 		function (users) {
 			var breadcrumbs = helpers.buildBreadcrumbs([
@@ -143,10 +151,10 @@ groupsController.members = function (req, res, callback) {
 				{ text: '[[groups:details.members]]' },
 			]);
 
+			var pageCount = Math.max(1, Math.ceil(groupData.memberCount / usersPerPage));
 			res.render('groups/members', {
 				users: users,
-				nextStart: 50,
-				loadmore_display: users.length > 50 ? 'block' : 'hide',
+				pagination: pagination.create(page, pageCount, req.query),
 				breadcrumbs: breadcrumbs,
 			});
 		},
@@ -177,5 +185,3 @@ groupsController.uploadCover = function (req, res, next) {
 		res.json([{ url: image.url }]);
 	});
 };
-
-module.exports = groupsController;

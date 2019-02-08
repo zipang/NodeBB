@@ -8,12 +8,14 @@ var user = require('../user');
 var privileges = require('../privileges');
 var plugins = require('../plugins');
 
+var auth = require('../routes/authentication');
+
 var controllers = {
 	helpers: require('../controllers/helpers'),
 };
 
 module.exports = function (middleware) {
-	middleware.authenticate = function (req, res, next) {
+	function authenticate(req, res, next, callback) {
 		if (req.loggedIn) {
 			return next();
 		}
@@ -22,18 +24,40 @@ module.exports = function (middleware) {
 			return plugins.fireHook('action:middleware.authenticate', {
 				req: req,
 				res: res,
-				next: next,
+				next: function (err) {
+					if (err) {
+						return next(err);
+					}
+
+					auth.setAuthVars(req, res, function () {
+						if (req.loggedIn && req.user && req.user.uid) {
+							return next();
+						}
+
+						callback();
+					});
+				},
 			});
 		}
 
-		controllers.helpers.notAllowed(req, res);
+		callback();
+	}
+
+	middleware.authenticate = function middlewareAuthenticate(req, res, next) {
+		authenticate(req, res, next, function () {
+			controllers.helpers.notAllowed(req, res, next);
+		});
 	};
 
-	middleware.ensureSelfOrGlobalPrivilege = function (req, res, next) {
+	middleware.authenticateOrGuest = function authenticateOrGuest(req, res, next) {
+		authenticate(req, res, next, next);
+	};
+
+	middleware.ensureSelfOrGlobalPrivilege = function ensureSelfOrGlobalPrivilege(req, res, next) {
 		ensureSelfOrMethod(user.isAdminOrGlobalMod, req, res, next);
 	};
 
-	middleware.ensureSelfOrPrivileged = function (req, res, next) {
+	middleware.ensureSelfOrPrivileged = function ensureSelfOrPrivileged(req, res, next) {
 		ensureSelfOrMethod(user.isPrivileged, req, res, next);
 	};
 
@@ -63,15 +87,15 @@ module.exports = function (middleware) {
 		], next);
 	}
 
-	middleware.checkGlobalPrivacySettings = function (req, res, next) {
-		if (!req.loggedIn && !!parseInt(meta.config.privateUserInfo, 10)) {
+	middleware.checkGlobalPrivacySettings = function checkGlobalPrivacySettings(req, res, next) {
+		if (!req.loggedIn && meta.config.privateUserInfo) {
 			return middleware.authenticate(req, res, next);
 		}
 
 		next();
 	};
 
-	middleware.checkAccountPermissions = function (req, res, next) {
+	middleware.checkAccountPermissions = function checkAccountPermissions(req, res, next) {
 		// This middleware ensures that only the requested user and admins can pass
 		async.waterfall([
 			function (next) {
@@ -104,8 +128,8 @@ module.exports = function (middleware) {
 		], next);
 	};
 
-	middleware.redirectToAccountIfLoggedIn = function (req, res, next) {
-		if (req.session.forceLogin || !req.uid) {
+	middleware.redirectToAccountIfLoggedIn = function redirectToAccountIfLoggedIn(req, res, next) {
+		if (req.session.forceLogin || req.uid <= 0) {
 			return next();
 		}
 
@@ -119,9 +143,9 @@ module.exports = function (middleware) {
 		], next);
 	};
 
-	middleware.redirectUidToUserslug = function (req, res, next) {
+	middleware.redirectUidToUserslug = function redirectUidToUserslug(req, res, next) {
 		var uid = parseInt(req.params.uid, 10);
-		if (!uid) {
+		if (uid <= 0) {
 			return next();
 		}
 		async.waterfall([
@@ -140,7 +164,7 @@ module.exports = function (middleware) {
 		], next);
 	};
 
-	middleware.redirectMeToUserslug = function (req, res, next) {
+	middleware.redirectMeToUserslug = function redirectMeToUserslug(req, res, next) {
 		var uid = req.uid;
 		async.waterfall([
 			function (next) {
@@ -156,7 +180,7 @@ module.exports = function (middleware) {
 		], next);
 	};
 
-	middleware.isAdmin = function (req, res, next) {
+	middleware.isAdmin = function isAdmin(req, res, next) {
 		async.waterfall([
 			function (next) {
 				user.isAdministrator(req.uid, next);
@@ -173,8 +197,8 @@ module.exports = function (middleware) {
 				}
 
 				var loginTime = req.session.meta ? req.session.meta.datetime : 0;
-				var adminReloginDuration = (meta.config.adminReloginDuration || 60) * 60000;
-				var disabled = parseInt(meta.config.adminReloginDuration, 10) === 0;
+				var adminReloginDuration = meta.config.adminReloginDuration * 60000;
+				var disabled = meta.config.adminReloginDuration === 0;
 				if (disabled || (loginTime && parseInt(loginTime, 10) > Date.now() - adminReloginDuration)) {
 					var timeLeft = parseInt(loginTime, 10) - (Date.now() - adminReloginDuration);
 					if (req.session.meta && timeLeft < Math.min(300000, adminReloginDuration)) {
@@ -209,10 +233,10 @@ module.exports = function (middleware) {
 		res.status(403).render('403', { title: '[[global:403.title]]' });
 	};
 
-	middleware.registrationComplete = function (req, res, next) {
+	middleware.registrationComplete = function registrationComplete(req, res, next) {
 		// If the user's session contains registration data, redirect the user to complete registration
 		if (!req.session.hasOwnProperty('registration')) {
-			return next();
+			return setImmediate(next);
 		}
 		if (!req.path.endsWith('/register/complete')) {
 			// Append user data if present
@@ -220,7 +244,7 @@ module.exports = function (middleware) {
 
 			controllers.helpers.redirect(res, '/register/complete');
 		} else {
-			return next();
+			setImmediate(next);
 		}
 	};
 };

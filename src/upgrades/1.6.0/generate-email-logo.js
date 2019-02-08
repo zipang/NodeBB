@@ -1,12 +1,12 @@
 'use strict';
 
-var image = require('../../image');
-var meta = require('../../meta');
 
 var async = require('async');
 var path = require('path');
 var nconf = require('nconf');
 var fs = require('fs');
+var meta = require('../../meta');
+var image = require('../../image');
 
 module.exports = {
 	name: 'Generate email logo for use in email header',
@@ -34,7 +34,6 @@ module.exports = {
 					image.resizeImage({
 						path: sourcePath,
 						target: uploadPath,
-						extension: 'png',
 						height: 50,
 					}, next);
 				});

@@ -3,6 +3,8 @@
 var fs = require('fs');
 var path = require('path');
 
+require('../../require-main');
+
 var packageInstall = require('./package-install');
 var dirname = require('./paths').baseDir;
 
@@ -50,7 +52,7 @@ try {
 	checkVersion('commander');
 	checkVersion('colors');
 } catch (e) {
-	if (['ENOENT', 'DEP_WRONG_VERSION', 'MODULE_NOT_FOUND'].indexOf(e.code) !== -1) {
+	if (['ENOENT', 'DEP_WRONG_VERSION', 'MODULE_NOT_FOUND'].includes(e.code)) {
 		console.warn('Dependencies outdated or not yet installed.');
 		console.log('Installing them now...\n');
 
@@ -65,7 +67,9 @@ try {
 }
 
 require('colors');
+// eslint-disable-next-line
 var nconf = require('nconf');
+// eslint-disable-next-line
 var program = require('commander');
 
 var pkg = require('../../package.json');
@@ -186,8 +190,9 @@ program
 program
 	.command('build [targets...]')
 	.description('Compile static assets ' + '(JS, CSS, templates, languages, sounds)'.red)
-	.action(function (targets) {
-		require('./manage').build(targets.length ? targets : true);
+	.option('-s, --series', 'Run builds in series without extra processes')
+	.action(function (targets, options) {
+		require('./manage').build(targets.length ? targets : true, options);
 	})
 	.on('--help', function () {
 		require('./manage').buildTargets();

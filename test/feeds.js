@@ -20,7 +20,6 @@ describe('feeds', function () {
 	var fooUid;
 	var cid;
 	before(function (done) {
-		groups.resetCache();
 		meta.config['feeds:disableRSS'] = 1;
 		async.series({
 			category: function (next) {
@@ -52,6 +51,7 @@ describe('feeds', function () {
 		var feedUrls = [
 			nconf.get('url') + '/topic/' + tid + '.rss',
 			nconf.get('url') + '/category/' + cid + '.rss',
+			nconf.get('url') + '/topics.rss',
 			nconf.get('url') + '/recent.rss',
 			nconf.get('url') + '/top.rss',
 			nconf.get('url') + '/popular.rss',
@@ -82,6 +82,14 @@ describe('feeds', function () {
 		});
 	});
 
+	it('should 404 if category id is not a number', function (done) {
+		request(nconf.get('url') + '/category/invalid.rss', function (err, res) {
+			assert.ifError(err);
+			assert.equal(res.statusCode, 404);
+			done();
+		});
+	});
+
 	it('should redirect if we do not have read privilege', function (done) {
 		privileges.categories.rescind(['topics:read'], cid, 'guests', function (err) {
 			assert.ifError(err);
@@ -89,7 +97,7 @@ describe('feeds', function () {
 				assert.ifError(err);
 				assert.equal(res.statusCode, 200);
 				assert(body);
-				assert(body.indexOf('Login to your account') !== -1);
+				assert(body.includes('Login to your account'));
 				privileges.categories.give(['topics:read'], cid, 'guests', done);
 			});
 		});
@@ -110,7 +118,7 @@ describe('feeds', function () {
 				assert.ifError(err);
 				assert.equal(res.statusCode, 200);
 				assert(body);
-				assert(body.indexOf('Login to your account') !== -1);
+				assert(body.includes('Login to your account'));
 				privileges.categories.give(['read'], cid, 'guests', done);
 			});
 		});
@@ -151,8 +159,8 @@ describe('feeds', function () {
 					assert.ifError(err);
 					assert.equal(results.test1[0].statusCode, 200);
 					assert.equal(results.test2[0].statusCode, 200);
-					assert(results.test1[0].body.indexOf('Login to your account') !== -1);
-					assert(results.test2[0].body.indexOf('Login to your account') !== -1);
+					assert(results.test1[0].body.includes('Login to your account'));
+					assert(results.test2[0].body.includes('Login to your account'));
 					done();
 				});
 			});
@@ -162,7 +170,7 @@ describe('feeds', function () {
 			request(nconf.get('url') + '/category/' + cid + '.rss?uid=' + fooUid + '&token=sometoken', { }, function (err, res, body) {
 				assert.ifError(err);
 				assert.equal(res.statusCode, 200);
-				assert(body.indexOf('Login to your account') !== -1);
+				assert(body.includes('Login to your account'));
 				done();
 			});
 		});
@@ -186,7 +194,7 @@ describe('feeds', function () {
 				request(nconf.get('url') + '/category/' + cid + '.rss?uid=' + fooUid + '&token=' + rssToken, { }, function (err, res, body) {
 					assert.ifError(err);
 					assert.equal(res.statusCode, 200);
-					assert(body.indexOf('Login to your account') !== -1);
+					assert(body.includes('Login to your account'));
 					done();
 				});
 			});

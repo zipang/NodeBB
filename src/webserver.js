@@ -20,17 +20,16 @@ var favicon = require('serve-favicon');
 var detector = require('spider-detector');
 var helmet = require('helmet');
 
+var Benchpress = require('benchpressjs');
 var db = require('./database');
 var file = require('./file');
 var emailer = require('./emailer');
 var meta = require('./meta');
-var languages = require('./languages');
 var logger = require('./logger');
 var plugins = require('./plugins');
 var flags = require('./flags');
 var routes = require('./routes');
 var auth = require('./routes/authentication');
-var Benchpress = require('benchpressjs');
 
 var helpers = require('../public/src/modules/helpers');
 
@@ -44,6 +43,7 @@ if (nconf.get('ssl')) {
 }
 
 module.exports.server = server;
+module.exports.app = app;
 
 server.on('error', function (err) {
 	if (err.code === 'EADDRINUSE') {
@@ -108,7 +108,7 @@ function initializeNodeBB(callback) {
 	var middleware = require('./middleware');
 
 	async.waterfall([
-		async.apply(meta.themes.setupPaths),
+		meta.themes.setupPaths,
 		function (next) {
 			plugins.init(app, middleware, next);
 		},
@@ -120,18 +120,11 @@ function initializeNodeBB(callback) {
 			}, next);
 		},
 		function (next) {
-			plugins.fireHook('filter:hotswap.prepare', [], next);
+			routes(app, middleware, next);
 		},
-		function (hotswapIds, next) {
-			routes(app, middleware, hotswapIds, next);
-		},
-		function (next) {
-			async.series([
-				meta.sounds.addUploads,
-				meta.blacklist.load,
-				flags.init,
-			], next);
-		},
+		meta.sounds.addUploads,
+		meta.blacklist.load,
+		flags.init,
 	], function (err) {
 		callback(err);
 	});
@@ -147,15 +140,7 @@ function setupExpressApp(app, callback) {
 	app.engine('tpl', function (filepath, data, next) {
 		filepath = filepath.replace(/\.tpl$/, '.js');
 
-		middleware.templatesOnDemand({
-			filePath: filepath,
-		}, null, function (err) {
-			if (err) {
-				return next(err);
-			}
-
-			Benchpress.__express(filepath, data, next);
-		});
+		Benchpress.__express(filepath, data, next);
 	});
 	app.set('view engine', 'tpl');
 	app.set('views', viewsDir);
@@ -181,34 +166,46 @@ function setupExpressApp(app, callback) {
 	app.use(bodyParser.urlencoded({ extended: true }));
 	app.use(bodyParser.json());
 	app.use(cookieParser());
-	app.use(useragent.express());
-	app.use(detector.middleware());
+	const userAgentMiddleware = useragent.express();
+	app.use(function userAgent(req, res, next) {
+		userAgentMiddleware(req, res, next);
+	});
+	const spiderDetectorMiddleware = detector.middleware();
+	app.use(function spiderDetector(req, res, next) {
+		spiderDetectorMiddleware(req, res, next);
+	});
 
 	app.use(session({
 		store: db.sessionStore,
 		secret: nconf.get('secret'),
 		key: nconf.get('sessionKey'),
 		cookie: setupCookie(),
-		resave: true,
-		saveUninitialized: true,
+		resave: nconf.get('sessionResave') || false,
+		saveUninitialized: nconf.get('sessionSaveUninitialized') || false,
 	}));
 
-	app.use(helmet());
-	app.use(helmet.referrerPolicy({ policy: 'strict-origin-when-cross-origin' }));
-	app.use(helmet.hsts({
-		maxAge: parseInt(meta.config['hsts-maxage'], 10) || 31536000,
-		includeSubdomains: !!parseInt(meta.config['hsts-subdomains'], 10),
-		preload: !!parseInt(meta.config['hsts-preload'], 10),
+	var hsts_option = {
+		maxAge: meta.config['hsts-maxage'],
+		includeSubdomains: !!meta.config['hsts-subdomains'],
+		preload: !!meta.config['hsts-preload'],
+		setIf: function () {
+			return !!meta.config['hsts-enabled'];
+		},
+	};
+	app.use(helmet({
+		hsts: hsts_option,
 	}));
+	app.use(helmet.referrerPolicy({ policy: 'strict-origin-when-cross-origin' }));
 	app.use(middleware.addHeaders);
 	app.use(middleware.processRender);
 	auth.initialize(app, middleware);
+	app.use(middleware.autoLocale);	// must be added after auth middlewares are added
 
 	var toobusy = require('toobusy-js');
-	toobusy.maxLag(parseInt(meta.config.eventLoopLagThreshold, 10) || 100);
-	toobusy.interval(parseInt(meta.config.eventLoopInterval, 10) || 500);
+	toobusy.maxLag(meta.config.eventLoopLagThreshold);
+	toobusy.interval(meta.config.eventLoopInterval);
 
-	setupAutoLocale(app, callback);
+	callback();
 }
 
 function setupFavicon(app) {
@@ -240,35 +237,6 @@ function setupCookie() {
 	}
 
 	return cookie;
-}
-
-function setupAutoLocale(app, callback) {
-	languages.listCodes(function (err, codes) {
-		if (err) {
-			return callback(err);
-		}
-
-		var defaultLang = meta.config.defaultLang || 'en-GB';
-
-		var langs = [defaultLang].concat(codes).filter(function (el, i, arr) {
-			return arr.indexOf(el) === i;
-		});
-
-		app.use(function (req, res, next) {
-			if (parseInt(req.uid, 10) > 0 || parseInt(meta.config.autoDetectLang, 10) !== 1) {
-				return next();
-			}
-
-			var lang = req.acceptsLanguages(langs);
-			if (!lang) {
-				return next();
-			}
-			req.query.lang = lang;
-			next();
-		});
-
-		callback();
-	});
 }
 
 function listen(callback) {
@@ -363,4 +331,3 @@ module.exports.testSocket = function (socketPath, callback) {
 		async.apply(fs.unlink, socketPath),	// The socket was stale, kick it out of the way
 	], callback);
 };
-

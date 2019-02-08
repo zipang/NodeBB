@@ -19,22 +19,21 @@ categoriesController.list = function (req, res, next) {
 	}];
 
 	var categoryData;
+	let tree;
 	async.waterfall([
 		function (next) {
-			categories.getCategoriesByPrivilege('cid:0:children', req.uid, 'find', next);
+			categories.getCategoriesByPrivilege('categories:cid', req.uid, 'find', next);
 		},
 		function (_categoryData, next) {
 			categoryData = _categoryData;
 
-			var allCategories = [];
-			categories.flattenCategories(allCategories, categoryData);
-
-			categories.getRecentTopicReplies(allCategories, req.uid, next);
+			tree = categories.getTree(categoryData, 0);
+			categories.getRecentTopicReplies(categoryData, req.uid, next);
 		},
 		function () {
 			var data = {
 				title: meta.config.homePageTitle || '[[pages:home]]',
-				categories: categoryData,
+				categories: tree,
 			};
 
 			if (req.originalUrl.startsWith(nconf.get('relative_path') + '/api/categories') || req.originalUrl.startsWith(nconf.get('relative_path') + '/categories')) {
@@ -47,12 +46,12 @@ categoriesController.list = function (req, res, next) {
 			}
 
 			data.categories.forEach(function (category) {
-				if (category && Array.isArray(category.posts) && category.posts.length) {
-					var latestPost = category.posts[category.posts.length-1];
+				if (category && Array.isArray(category.posts) && category.posts.length && category.posts[0]) {
 					category.teaser = {
-						url: nconf.get('relative_path') + '/post/' + latestPost.pid,
-						timestampISO: latestPost.timestampISO,
-						pid: latestPost.pid,
+						url: nconf.get('relative_path') + '/post/' + category.posts[0].pid,
+						timestampISO: category.posts[0].timestampISO,
+						pid: category.posts[0].pid,
+						topic: category.posts[0].topic,
 					};
 				}
 			});

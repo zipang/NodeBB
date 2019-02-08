@@ -3,7 +3,6 @@
 var async = require('async');
 var winston = require('winston');
 
-var plugins = require('../plugins');
 var file = require('../file');
 var image = require('../image');
 var meta = require('../meta');
@@ -37,9 +36,8 @@ module.exports = function (User) {
 
 		async.waterfall([
 			function (next) {
-				var size = data.file ? data.file.size : data.imageData.length;
-				meta.config.maximumCoverImageSize = meta.config.maximumCoverImageSize || 2048;
-				if (size > parseInt(meta.config.maximumCoverImageSize, 10) * 1024) {
+				var size = data.file ? data.file.size : image.sizeFromBase64(data.imageData);
+				if (size > meta.config.maximumCoverImageSize * 1024) {
 					return next(new Error('[[error:file-too-big, ' + meta.config.maximumCoverImageSize + ']]'));
 				}
 
@@ -59,7 +57,7 @@ module.exports = function (User) {
 
 				var extension = file.typeToExtension(type);
 				var filename = generateProfileImageFilename(data.uid, 'profilecover', extension);
-				uploadProfileOrCover(filename, picture, next);
+				image.uploadImage(filename, 'profile', picture, next);
 			},
 			function (uploadData, next) {
 				url = uploadData.url;
@@ -81,7 +79,7 @@ module.exports = function (User) {
 	};
 
 	User.uploadCroppedPicture = function (data, callback) {
-		if (parseInt(meta.config.allowProfileImageUploads, 10) !== 1) {
+		if (!meta.config.allowProfileImageUploads) {
 			return callback(new Error('[[error:profile-image-uploads-disabled]]'));
 		}
 
@@ -89,10 +87,10 @@ module.exports = function (User) {
 			return callback(new Error('[[error:invalid-data]]'));
 		}
 
-		var size = data.file ? data.file.size : data.imageData.length;
-		var uploadSize = parseInt(meta.config.maximumProfileImageSize, 10) || 256;
+		var size = data.file ? data.file.size : image.sizeFromBase64(data.imageData);
+		var uploadSize = meta.config.maximumProfileImageSize;
 		if (size > uploadSize * 1024) {
-			return callback(new Error('[[error:file-too-big, ' + meta.config.maximumProfileImageSize + ']]'));
+			return callback(new Error('[[error:file-too-big, ' + uploadSize + ']]'));
 		}
 
 		var type = data.file ? data.file.type : image.mimeFromBase64(data.imageData);
@@ -123,18 +121,15 @@ module.exports = function (User) {
 			},
 			function (path, next) {
 				picture.path = path;
-
-				var imageDimension = parseInt(meta.config.profileImageDimension, 10) || 200;
 				image.resizeImage({
 					path: picture.path,
-					extension: extension,
-					width: imageDimension,
-					height: imageDimension,
+					width: meta.config.profileImageDimension,
+					height: meta.config.profileImageDimension,
 				}, next);
 			},
 			function (next) {
 				var filename = generateProfileImageFilename(data.uid, 'profileavatar', extension);
-				uploadProfileOrCover(filename, picture, next);
+				image.uploadImage(filename, 'profile', picture, next);
 			},
 			function (_uploadedImage, next) {
 				uploadedImage = _uploadedImage;
@@ -151,7 +146,7 @@ module.exports = function (User) {
 	};
 
 	function convertToPNG(path, extension, callback) {
-		var convertToPNG = parseInt(meta.config['profile:convertProfileImageToPNG'], 10) === 1;
+		var convertToPNG = meta.config['profile:convertProfileImageToPNG'] === 1;
 		if (!convertToPNG) {
 			return setImmediate(callback, null, path);
 		}
@@ -166,39 +161,10 @@ module.exports = function (User) {
 		], callback);
 	}
 
-	function uploadProfileOrCover(filename, image, callback) {
-		if (plugins.hasListeners('filter:uploadImage')) {
-			return plugins.fireHook('filter:uploadImage', {
-				image: image,
-				uid: image.uid,
-			}, callback);
-		}
-
-		saveFileToLocal(filename, image, callback);
-	}
-
 	function generateProfileImageFilename(uid, type, extension) {
-		var keepAllVersions = parseInt(meta.config['profile:keepAllUserImages'], 10) === 1;
-		var convertToPNG = parseInt(meta.config['profile:convertProfileImageToPNG'], 10) === 1;
+		var keepAllVersions = meta.config['profile:keepAllUserImages'] === 1;
+		var convertToPNG = meta.config['profile:convertProfileImageToPNG'] === 1;
 		return uid + '-' + type + (keepAllVersions ? '-' + Date.now() : '') + (convertToPNG ? '.png' : extension);
-	}
-
-	function saveFileToLocal(filename, image, callback) {
-		async.waterfall([
-			function (next) {
-				file.isFileTypeAllowed(image.path, next);
-			},
-			function (next) {
-				file.saveFileToLocal(filename, 'profile', image.path, next);
-			},
-			function (upload, next) {
-				next(null, {
-					url: upload.url,
-					path: upload.path,
-					name: image.name,
-				});
-			},
-		], callback);
 	}
 
 	User.removeCoverPicture = function (data, callback) {

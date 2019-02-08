@@ -9,7 +9,7 @@ var pubsub = require('../pubsub');
 
 module.exports = function (User) {
 	User.blocks = {
-		_cache: LRU({
+		_cache: new LRU({
 			max: 100,
 			length: function () { return 1; },
 			maxAge: 0,
@@ -23,7 +23,15 @@ module.exports = function (User) {
 	};
 
 	User.blocks.can = function (callerUid, blockerUid, blockeeUid, callback) {
+		// Guests can't block
+		if (blockerUid === 0 || blockeeUid === 0) {
+			return setImmediate(callback, new Error('[[error:cannot-block-guest]]'));
+		} else if (blockerUid === blockeeUid) {
+			return setImmediate(callback, new Error('[[error:cannot-block-self]]'));
+		}
+
 		// Administrators and global moderators cannot be blocked
+		// Only admins/mods can block users as another user
 		async.waterfall([
 			function (next) {
 				async.parallel({
@@ -37,19 +45,20 @@ module.exports = function (User) {
 			},
 			function (results, next) {
 				if (results.isBlockeeAdminOrMod) {
-					return callback(null, false);
+					return callback(new Error('[[error:cannot-block-privileged]]'));
 				}
 				if (parseInt(callerUid, 10) !== parseInt(blockerUid, 10) && !results.isCallerAdminOrMod) {
-					return callback(null, false);
+					return callback(new Error());
 				}
-				next(null, true);
+
+				next();
 			},
 		], callback);
 	};
 
 	User.blocks.list = function (uid, callback) {
-		if (User.blocks._cache.has(uid)) {
-			return setImmediate(callback, null, User.blocks._cache.get(uid));
+		if (User.blocks._cache.has(parseInt(uid, 10))) {
+			return setImmediate(callback, null, User.blocks._cache.get(parseInt(uid, 10)));
 		}
 
 		db.getSortedSetRange('uid:' + uid + ':blocked_uids', 0, -1, function (err, blocked) {
@@ -73,8 +82,8 @@ module.exports = function (User) {
 			async.apply(db.sortedSetAdd.bind(db), 'uid:' + uid + ':blocked_uids', Date.now(), targetUid),
 			async.apply(User.incrementUserFieldBy, uid, 'blocksCount', 1),
 			function (_blank, next) {
-				User.blocks._cache.del(uid);
-				pubsub.publish('user:blocks:cache:del', uid);
+				User.blocks._cache.del(parseInt(uid, 10));
+				pubsub.publish('user:blocks:cache:del', parseInt(uid, 10));
 				setImmediate(next);
 			},
 		], callback);
@@ -86,20 +95,22 @@ module.exports = function (User) {
 			async.apply(db.sortedSetRemove.bind(db), 'uid:' + uid + ':blocked_uids', targetUid),
 			async.apply(User.decrementUserFieldBy, uid, 'blocksCount', 1),
 			function (_blank, next) {
-				User.blocks._cache.del(uid);
-				pubsub.publish('user:blocks:cache:del', uid);
+				User.blocks._cache.del(parseInt(uid, 10));
+				pubsub.publish('user:blocks:cache:del', parseInt(uid, 10));
 				setImmediate(next);
 			},
 		], callback);
 	};
 
 	User.blocks.applyChecks = function (block, targetUid, uid, callback) {
-		if (parseInt(targetUid, 10) === parseInt(uid, 10)) {
-			return setImmediate(callback, new Error('[[error:cannot-block-self]]'));
-		}
+		User.blocks.can(uid, uid, targetUid, function (err) {
+			if (err) {
+				return callback(err);
+			}
 
-		User.blocks.is(targetUid, uid, function (err, is) {
-			callback(err || (is === block ? new Error('[[error:already-' + (block ? 'blocked' : 'unblocked') + ']]') : null));
+			User.blocks.is(targetUid, uid, function (err, is) {
+				callback(err || (is === block ? new Error('[[error:already-' + (block ? 'blocked' : 'unblocked') + ']]') : null));
+			});
 		});
 	};
 

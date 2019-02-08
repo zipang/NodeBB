@@ -39,16 +39,8 @@
 		if (!item) {
 			return false;
 		}
-		var properties = item.properties;
+
 		var loggedIn = data.config ? data.config.loggedIn : false;
-		if (properties) {
-			if ((properties.loggedIn && !loggedIn) ||
-				(properties.guestOnly && loggedIn) ||
-				(properties.globalMod && !data.isGlobalMod && !data.isAdmin) ||
-				(properties.adminOnly && !data.isAdmin)) {
-				return false;
-			}
-		}
 
 		if (item.route.match('/users') && data.privateUserInfo && !loggedIn) {
 			return false;
@@ -82,7 +74,8 @@
 
 	function stringify(obj) {
 		// Turns the incoming object into a JSON string
-		return JSON.stringify(obj).replace(/&/gm, '&amp;').replace(/</gm, '&lt;').replace(/>/gm, '&gt;').replace(/"/g, '&quot;');
+		return JSON.stringify(obj).replace(/&/gm, '&amp;').replace(/</gm, '&lt;').replace(/>/gm, '&gt;')
+			.replace(/"/g, '&quot;');
 	}
 
 	function escape(str) {
@@ -185,7 +178,10 @@
 			}
 		}
 		return states.map(function (priv) {
-			return '<td class="text-center" data-privilege="' + priv.name + '"><input type="checkbox"' + (priv.state ? ' checked' : '') + (member === 'guests' && priv.name === 'groups:moderate' ? ' disabled="disabled"' : '') + ' /></td>';
+			var guestDisabled = ['groups:moderate', 'groups:posts:upvote', 'groups:posts:downvote'];
+			var disabled = member === 'guests' && guestDisabled.includes(priv.name);
+
+			return '<td class="text-center" data-privilege="' + priv.name + '"><input type="checkbox"' + (priv.state ? ' checked' : '') + (disabled ? ' disabled="disabled"' : '') + ' /></td>';
 		}).join('');
 	}
 

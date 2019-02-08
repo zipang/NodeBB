@@ -2,13 +2,10 @@
 
 var async = require('async');
 var path = require('path');
-var Jimp = require('jimp');
-var mime = require('mime');
 
 var db = require('../database');
 var image = require('../image');
 var file = require('../file');
-var uploadsController = require('../controllers/uploads');
 
 module.exports = function (Groups) {
 	Groups.updateCoverPosition = function (groupName, position, callback) {
@@ -26,7 +23,6 @@ module.exports = function (Groups) {
 
 		var tempPath = data.file ? data.file : '';
 		var url;
-		var type = data.file ? mime.getType(data.file) : 'image/png';
 
 		async.waterfall([
 			function (next) {
@@ -38,10 +34,10 @@ module.exports = function (Groups) {
 			function (_tempPath, next) {
 				tempPath = _tempPath;
 
-				uploadsController.uploadGroupCover(uid, {
-					name: 'groupCover' + path.extname(tempPath),
+				const filename = 'groupCover-' + data.groupName + path.extname(tempPath);
+				image.uploadImage(filename, 'files', {
 					path: tempPath,
-					type: type,
+					uid: uid,
 				}, next);
 			},
 			function (uploadData, next) {
@@ -49,13 +45,15 @@ module.exports = function (Groups) {
 				Groups.setGroupField(data.groupName, 'cover:url', url, next);
 			},
 			function (next) {
-				resizeCover(tempPath, next);
+				image.resizeImage({
+					path: tempPath,
+					width: 358,
+				}, next);
 			},
 			function (next) {
-				uploadsController.uploadGroupCover(uid, {
-					name: 'groupCoverThumb' + path.extname(tempPath),
+				image.uploadImage('groupCoverThumb-' + data.groupName + path.extname(tempPath), 'files', {
 					path: tempPath,
-					type: type,
+					uid: uid,
 				}, next);
 			},
 			function (uploadData, next) {
@@ -73,22 +71,6 @@ module.exports = function (Groups) {
 			callback(err, { url: url });
 		});
 	};
-
-	function resizeCover(path, callback) {
-		async.waterfall([
-			function (next) {
-				new Jimp(path, next);
-			},
-			function (image, next) {
-				image.resize(358, Jimp.AUTO, next);
-			},
-			function (image, next) {
-				image.write(path, next);
-			},
-		], function (err) {
-			callback(err);
-		});
-	}
 
 	Groups.removeCover = function (data, callback) {
 		db.deleteObjectFields('group:' + data.groupName, ['cover:url', 'cover:thumb:url', 'cover:position'], callback);

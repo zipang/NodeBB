@@ -78,6 +78,7 @@
     "still-uploading": "الرجاء الانتظار حتى يكتمل الرفع.",
     "file-too-big": "الحد الأقصى لرفع الملفات %1 كيلو بت. رجاءًا ارفع ملف أصغر",
     "guest-upload-disabled": "خاصية رفع الملفات غير مفعلة للزوار.",
+    "cors-error": "Unable to upload image due to misconfigured CORS",
     "already-bookmarked": "You have already bookmarked this post",
     "already-unbookmarked": "You have already unbookmarked this post",
     "cant-ban-other-admins": "لايمكن حظر مدبر نظام آخر.",
@@ -87,6 +88,7 @@
     "invalid-image-type": "نوع الصورة غير مدعوم. الأنواع المدعومة هي :  %1",
     "invalid-image-extension": "امتداد الصورة غير مدعوم.",
     "invalid-file-type": "صيغة الملف غير مدعومة. الأنواع المدعومة هي: %1",
+    "invalid-image-dimensions": "Image dimensions are too big",
     "group-name-too-short": "اسم المجموعة قصير",
     "group-name-too-long": "اسم المجموعة طويل.",
     "group-already-exists": "المجموعة موجودة مسبقا",
@@ -118,7 +120,7 @@
     "chat-edit-duration-expired": "You are only allowed to edit chat messages for %1 second(s) after posting",
     "chat-delete-duration-expired": "You are only allowed to delete chat messages for %1 second(s) after posting",
     "chat-deleted-already": "This chat message has already been deleted.",
-    "chat-restored'already": "This chat message has already been restored.",
+    "chat-restored-already": "This chat message has already been restored.",
     "already-voting-for-this-post": "لقد شاركت بالتصويت ، ألا تذكر؟",
     "reputation-system-disabled": "نظام السمعة معطل",
     "downvoting-disabled": "التصويتات السلبية معطلة",
@@ -151,5 +153,8 @@
     "cant-move-to-same-topic": "Can't move post to same topic!",
     "cannot-block-self": "You cannot block yourself!",
     "cannot-block-privileged": "You cannot block administrators or global moderators",
+    "cannot-block-guest": "Guest are not able to block other users",
+    "already-blocked": "This user is already blocked",
+    "already-unblocked": "This user is already unblocked",
     "no-connection": "There seems to be a problem with your internet connection"
 }
