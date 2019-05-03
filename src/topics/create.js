@@ -89,7 +89,7 @@ module.exports = function (Topics) {
 				], next);
 			},
 			function (results, next) {
-				plugins.fireHook('action:topic.save', { topic: _.clone(topicData) });
+				plugins.fireHook('action:topic.save', { topic: _.clone(topicData), data: data });
 				next(null, topicData.tid);
 			},
 		], callback);
